@@ -21,7 +21,7 @@ Copy `volcano/volcano.env.example` to the ignored `volcano/volcano.env`; replace
 | `NEXT_PUBLIC_VOLCANO_API_URL`, `NEXT_PUBLIC_VOLCANO_ANON_KEY`, `NEXT_PUBLIC_VOLCANO_DATABASE` | Browser Volcano client. |
 | `ANTHROPIC_API_KEY`, `CLAUDE_MODEL` | Claude Agent SDK. The default model is `claude-sonnet-4-6`. |
 | `TRELLINI_MCP_URL`, `TRELLINI_API_URL`, `TRELLINI_ANON_KEY` | Full hosted Streamable HTTP MCP endpoint and the new Trellini project's API URL and browser key. |
-| `TRELLINI_AGENT_EMAIL`, `TRELLINI_AGENT_PASSWORD` | Dedicated Trellini user credentials. LaunchBrief signs in for a current RLS-scoped MCP bearer token. Keep the password server-side. |
+| `TRELLINI_OWNER_EMAIL`, `TRELLINI_OWNER_PASSWORD` | Trellini owner user credentials. LaunchBrief signs in for a current RLS-scoped MCP bearer token. Keep the password server-side. |
 | `TRELLINI_BOARD_ID`, `TRELLINI_COLUMN_ID` | Existing Trellini board and destination column UUIDs. |
 | `TRELLINI_CARD_URL_TEMPLATE` | Optional verified task deep link with `{board_id}` and `{card_id}` placeholders. Trellini currently establishes `/board/{board_id}` but does not establish a card deep-link contract. |
 | `APP_BASE_URL` | LaunchBrief origin for Checkout redirects and the link placed in Trellini card notes. |
@@ -50,7 +50,7 @@ The configured `STRIPE_PRICE_ID` must represent the entire `CREDITS_PER_PACK` pa
 
 - LaunchBrief project `ca20b9da-464f-4202-9513-bf3e52c2b1c4`: [app](https://eff19528-a1be-4397-a099-bf3729dd275e.frontends.staging.volcano.run/), [Stripe webhook](https://4812dc37-48e4-4c32-b7dd-f56be9f7341f.functions.staging.volcano.run/). Database `app`, private `launchbrief-decks` bucket, four Functions, and email signup without confirmation are deployed.
 - Separate Trellini project `53754e67-b4cd-49fb-be63-6928b86f4887`: [board app](https://a922367c-c26d-43b0-8a86-c2e70d6bd856.frontends.staging.volcano.run/), [public board view](https://2978473f-edd5-441c-bcdf-b23c3724f122.frontends.staging.volcano.run/), [MCP endpoint](https://6213366b-acbd-4392-964e-2f1f2e3051fd.functions.staging.volcano.run/). Its source repository was not edited.
-- To enable generation, set `ANTHROPIC_API_KEY` and the Trellini agent credentials, board ID, and column ID listed above. To enable purchases, set the Stripe variables, register the webhook URL with Stripe for `checkout.session.completed` and `checkout.session.async_payment_succeeded`, then verify a paid test Checkout and credit grant.
+- To enable generation, set `ANTHROPIC_API_KEY` and the Trellini owner credentials, board ID, and column ID listed above. To enable purchases, set the Stripe variables, register the webhook URL with Stripe for `checkout.session.completed` and `checkout.session.async_payment_succeeded`, then verify a paid test Checkout and credit grant.
 
 ## Known integration boundaries
 

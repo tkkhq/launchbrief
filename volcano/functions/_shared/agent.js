@@ -8,8 +8,8 @@ async function getTrelliniToken() {
     trelliniSignIn = (async () => {
       const { VolcanoAuth } = await import('@volcano.dev/sdk');
       const auth = new VolcanoAuth({ apiUrl: process.env.TRELLINI_API_URL, anonKey: process.env.TRELLINI_ANON_KEY });
-      const { session, error } = await auth.auth.signIn({ email: process.env.TRELLINI_AGENT_EMAIL, password: process.env.TRELLINI_AGENT_PASSWORD });
-      if (error || !session?.access_token) throw new Error(`Trellini agent sign-in failed: ${error?.message || 'no session'}`);
+      const { session, error } = await auth.auth.signIn({ email: process.env.TRELLINI_OWNER_EMAIL, password: process.env.TRELLINI_OWNER_PASSWORD });
+      if (error || !session?.access_token) throw new Error(`Trellini owner sign-in failed: ${error?.message || 'no session'}`);
       trelliniToken = { value: session.access_token, expiresAt: Date.now() + Math.max(0, session.expires_in - 60) * 1000 };
       return trelliniToken.value;
     })().finally(() => { trelliniSignIn = null; });
@@ -68,8 +68,8 @@ function makeTrelliniCardGuard({ boardId, columnId, title, notes }) {
 }
 
 async function createTrelliniTask(idea, prompt, ideaId) {
-  const { TRELLINI_MCP_URL, TRELLINI_API_URL, TRELLINI_ANON_KEY, TRELLINI_AGENT_EMAIL, TRELLINI_AGENT_PASSWORD, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL } = process.env;
-  if (![TRELLINI_MCP_URL, TRELLINI_API_URL, TRELLINI_ANON_KEY, TRELLINI_AGENT_EMAIL, TRELLINI_AGENT_PASSWORD, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL].every(Boolean)) throw new Error('Trellini integration variables are incomplete');
+  const { TRELLINI_MCP_URL, TRELLINI_API_URL, TRELLINI_ANON_KEY, TRELLINI_OWNER_EMAIL, TRELLINI_OWNER_PASSWORD, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL } = process.env;
+  if (![TRELLINI_MCP_URL, TRELLINI_API_URL, TRELLINI_ANON_KEY, TRELLINI_OWNER_EMAIL, TRELLINI_OWNER_PASSWORD, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL].every(Boolean)) throw new Error('Trellini integration variables are incomplete');
   if (![TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID].every(id => UUID.test(id))) throw new Error('Trellini board or column ID is invalid');
   const token = await getTrelliniToken();
   const notes = `LaunchBrief idea: ${new URL(`/ideas/${ideaId}`, APP_BASE_URL).toString()}\n\nProduct: ${idea.product_name}\nTarget customer: ${idea.target_customer}\nCategory: ${idea.category}\n\nPrompt:\n${prompt}`;

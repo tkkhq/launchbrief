@@ -15,7 +15,7 @@ exports.handler = async (event) => {
   if (!initial && !idea) return reply(404, { error: 'Idea not found.' });
   const existing = await one(db.from('launch_turns').select('id,status').eq('id', event.turn_id).eq('user_id', auth.user_id).limit(1), 'Checking turn');
   if (existing) return reply(200, { turn_id: existing.id, status: existing.status });
-  const missing = ['ANTHROPIC_API_KEY','TRELLINI_MCP_URL','TRELLINI_API_URL','TRELLINI_ANON_KEY','TRELLINI_AGENT_EMAIL','TRELLINI_AGENT_PASSWORD','TRELLINI_BOARD_ID','TRELLINI_COLUMN_ID','APP_BASE_URL'].filter(k => !process.env[k]);
+  const missing = ['ANTHROPIC_API_KEY','TRELLINI_MCP_URL','TRELLINI_API_URL','TRELLINI_ANON_KEY','TRELLINI_OWNER_EMAIL','TRELLINI_OWNER_PASSWORD','TRELLINI_BOARD_ID','TRELLINI_COLUMN_ID','APP_BASE_URL'].filter(k => !process.env[k]);
   if (missing.length) return reply(503, { error: `Service is not configured: ${missing.join(', ')}` });
   const charged = await claimCredit(db, auth.user_id, event.turn_id);
   if (!charged) return reply(402, { error: 'You need one credit to create a brief.' });
