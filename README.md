@@ -47,7 +47,7 @@ Cloud deploy requires an authenticated Volcano project and explicit approval. De
 
 ## Known integration boundaries
 
-- Trellini's hosted MCP `create_card` schema is confirmed in `../trellini/volcano/functions/mcp-server.js`: `board_id`, `column_id`, `title`, optional `notes` and `priority`. LaunchBrief requires an actual tool result with a UUID before storing a task ID. No Trellini files are changed.
+- Trellini's hosted MCP `create_card` schema is confirmed in `../trellini/volcano/functions/mcp-server.js`: `board_id`, `column_id`, `title`, optional `notes` and `priority`. LaunchBrief uses a pre-tool hook to force the submitted card fields and requires an actual tool result with a UUID before storing a task ID. No Trellini files are changed.
 - Trellini has no confirmed card deep-link URL. A card ID is retained, but a task link is shown only after a working `TRELLINI_CARD_URL_TEMPLATE` is supplied.
 - The current brief notes are model assumptions. External research needs a source provider and source-verification contract before sourced findings can be shown.
 - The brief generation Function waits for Claude and Trellini in one request. The app saves progress and results, but a production deployment needs a measured function timeout and may need a durable runner if agent execution exceeds it.

@@ -13,6 +13,7 @@ async function runAgent(prompt, options = {}) {
       allowedTools: options.allowedTools || [],
       disallowedTools: ['Bash', 'Read', 'Write', 'Edit', 'WebSearch', 'WebFetch'],
       ...(options.mcpServers ? { mcpServers: options.mcpServers } : {}),
+      ...(options.hooks ? { hooks: options.hooks } : {}),
       systemPrompt: options.systemPrompt || 'Follow the user request exactly. Return only valid JSON.',
       tools: [],
       settingSources: [],
@@ -37,23 +38,37 @@ async function runAgent(prompt, options = {}) {
   return { output, toolCalls, toolResults };
 }
 
+function makeTrelliniCardGuard({ boardId, columnId, title, notes }) {
+  let approvedCalls = 0;
+  const guard = async (input) => {
+    const deny = (reason) => ({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reason } });
+    if (input.tool_name !== 'mcp__trellini__create_card') return deny('Only Trellini create_card is available');
+    if (approvedCalls >= 1) return deny('The prompt can create only one Trellini card');
+    approvedCalls += 1;
+    return { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'allow', updatedInput: { board_id: boardId, column_id: columnId, title, notes, priority: 'normal' } } };
+  };
+  return { guard, count: () => approvedCalls };
+}
+
 async function createTrelliniTask(idea, prompt, ideaId) {
   const { TRELLINI_MCP_URL, TRELLINI_MCP_TOKEN, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL } = process.env;
   if (![TRELLINI_MCP_URL, TRELLINI_MCP_TOKEN, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL].every(Boolean)) throw new Error('Trellini integration variables are incomplete');
   if (![TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID].every(id => UUID.test(id))) throw new Error('Trellini board or column ID is invalid');
   const notes = `LaunchBrief idea: ${new URL(`/ideas/${ideaId}`, APP_BASE_URL).toString()}\n\nProduct: ${idea.product_name}\nTarget customer: ${idea.target_customer}\nCategory: ${idea.category}\n\nPrompt:\n${prompt}`;
+  const cardGuard = makeTrelliniCardGuard({ boardId: TRELLINI_BOARD_ID, columnId: TRELLINI_COLUMN_ID, title: `LaunchBrief: ${idea.product_name}`, notes });
   const run = await runAgent(
     `Use the Trellini create_card tool exactly once with column_id=${TRELLINI_COLUMN_ID}, board_id=${TRELLINI_BOARD_ID}, title=${JSON.stringify(`LaunchBrief: ${idea.product_name}`)}, notes=${JSON.stringify(notes)}, priority=normal. Return JSON with the card id from the tool response as {"card_id":"..."}. If the tool fails, report the failure instead of inventing an id.`,
     {
       maxTurns: 3,
       requireJson: false,
       allowedTools: ['mcp__trellini__create_card'],
+      hooks: { PreToolUse: [{ matcher: '^mcp__', hooks: [cardGuard.guard] }] },
       mcpServers: { trellini: { type: 'http', url: TRELLINI_MCP_URL, alwaysLoad: true, headers: { Authorization: `Bearer ${TRELLINI_MCP_TOKEN}` } } },
       systemPrompt: 'You are recording a LaunchBrief request in Trellini. Call only create_card. Never invent a task id. Return only JSON.',
     },
   );
   const calls = run.toolCalls.filter(c => c.name === 'mcp__trellini__create_card');
-  if (calls.length !== 1 || calls[0].input?.board_id !== TRELLINI_BOARD_ID || calls[0].input?.column_id !== TRELLINI_COLUMN_ID) throw new Error('Trellini create_card was not called exactly once with the configured destination');
+  if (calls.length !== 1 || cardGuard.count() !== 1) throw new Error('Trellini create_card was not called exactly once');
   let verifiedId = null;
   for (const block of run.toolResults) {
     if (block.tool_use_id !== calls[0].id || block.is_error) continue;
@@ -79,4 +94,4 @@ async function writeBrief(idea, prompt, history) {
   return response;
 }
 
-module.exports = { createTrelliniTask, writeBrief };
+module.exports = { createTrelliniTask, writeBrief, makeTrelliniCardGuard };
