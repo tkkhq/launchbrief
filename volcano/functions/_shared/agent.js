@@ -1,21 +1,4 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-let trelliniToken = null;
-let trelliniSignIn = null;
-
-async function getTrelliniToken() {
-  if (trelliniToken && Date.now() < trelliniToken.expiresAt) return trelliniToken.value;
-  if (!trelliniSignIn) {
-    trelliniSignIn = (async () => {
-      const { VolcanoAuth } = await import('@volcano.dev/sdk');
-      const auth = new VolcanoAuth({ apiUrl: process.env.TRELLINI_API_URL, anonKey: process.env.TRELLINI_ANON_KEY });
-      const { session, error } = await auth.auth.signIn({ email: process.env.TRELLINI_OWNER_EMAIL, password: process.env.TRELLINI_OWNER_PASSWORD });
-      if (error || !session?.access_token) throw new Error(`Trellini owner sign-in failed: ${error?.message || 'no session'}`);
-      trelliniToken = { value: session.access_token, expiresAt: Date.now() + Math.max(0, session.expires_in - 60) * 1000 };
-      return trelliniToken.value;
-    })().finally(() => { trelliniSignIn = null; });
-  }
-  return trelliniSignIn;
-}
 
 async function runAgent(prompt, options = {}) {
   const { query } = await import('@anthropic-ai/claude-agent-sdk');
@@ -55,33 +38,44 @@ async function runAgent(prompt, options = {}) {
   return { output, toolCalls, toolResults };
 }
 
-function makeTrelliniCardGuard({ boardId, columnId, title, notes }) {
+function makeTrelliniCardGuard({ columnId, title, notes }) {
   let approvedCalls = 0;
   const guard = async (input) => {
     const deny = (reason) => ({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reason } });
     if (input.tool_name !== 'mcp__trellini__create_card') return deny('Only Trellini create_card is available');
     if (approvedCalls >= 1) return deny('The prompt can create only one Trellini card');
     approvedCalls += 1;
-    return { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'allow', updatedInput: { board_id: boardId, column_id: columnId, title, notes, priority: 'normal' } } };
+    return { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'allow', updatedInput: { column_id: columnId, title, notes, priority: 'normal' } } };
   };
   return { guard, count: () => approvedCalls };
 }
 
+async function verifyTrelliniTarget(apiUrl, serviceKey, database, boardId, columnId) {
+  const response = await fetch(`${apiUrl.replace(/\/$/, '')}/databases/${encodeURIComponent(database)}/query/select`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}` },
+    body: JSON.stringify({ table: 'board_columns', select: ['id', 'board_id'], filters: [{ column: 'id', operator: 'eq', value: columnId }], limit: 1 }),
+  });
+  if (!response.ok) throw new Error(`Trellini target check failed: ${response.status}`);
+  const result = await response.json();
+  if (result.data?.[0]?.board_id !== boardId) throw new Error('Trellini column does not belong to the configured board');
+}
+
 async function createTrelliniTask(idea, prompt, ideaId) {
-  const { TRELLINI_MCP_URL, TRELLINI_API_URL, TRELLINI_ANON_KEY, TRELLINI_OWNER_EMAIL, TRELLINI_OWNER_PASSWORD, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL } = process.env;
-  if (![TRELLINI_MCP_URL, TRELLINI_API_URL, TRELLINI_ANON_KEY, TRELLINI_OWNER_EMAIL, TRELLINI_OWNER_PASSWORD, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL].every(Boolean)) throw new Error('Trellini integration variables are incomplete');
+  const { TRELLINI_API_URL, TRELLINI_SERVICE_KEY, TRELLINI_DATABASE, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL } = process.env;
+  if (![TRELLINI_API_URL, TRELLINI_SERVICE_KEY, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL].every(Boolean)) throw new Error('Trellini integration variables are incomplete');
   if (![TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID].every(id => UUID.test(id))) throw new Error('Trellini board or column ID is invalid');
-  const token = await getTrelliniToken();
+  await verifyTrelliniTarget(TRELLINI_API_URL, TRELLINI_SERVICE_KEY, TRELLINI_DATABASE || 'trellini', TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID);
   const notes = `LaunchBrief idea: ${new URL(`/ideas/${ideaId}`, APP_BASE_URL).toString()}\n\nProduct: ${idea.product_name}\nTarget customer: ${idea.target_customer}\nCategory: ${idea.category}\n\nPrompt:\n${prompt}`;
-  const cardGuard = makeTrelliniCardGuard({ boardId: TRELLINI_BOARD_ID, columnId: TRELLINI_COLUMN_ID, title: `LaunchBrief: ${idea.product_name}`, notes });
+  const cardGuard = makeTrelliniCardGuard({ columnId: TRELLINI_COLUMN_ID, title: `LaunchBrief: ${idea.product_name}`, notes });
   const run = await runAgent(
-    `Use the Trellini create_card tool exactly once with column_id=${TRELLINI_COLUMN_ID}, board_id=${TRELLINI_BOARD_ID}, title=${JSON.stringify(`LaunchBrief: ${idea.product_name}`)}, notes=${JSON.stringify(notes)}, priority=normal. Return JSON with the card id from the tool response as {"card_id":"..."}. If the tool fails, report the failure instead of inventing an id.`,
+    `Use the Trellini create_card tool exactly once with column_id=${TRELLINI_COLUMN_ID}, title=${JSON.stringify(`LaunchBrief: ${idea.product_name}`)}, notes=${JSON.stringify(notes)}, priority=normal. Return JSON with the card id from the tool response as {"card_id":"..."}. If the tool fails, report the failure instead of inventing an id.`,
     {
       maxTurns: 3,
       requireJson: false,
       allowedTools: ['mcp__trellini__create_card'],
       hooks: { PreToolUse: [{ matcher: '^mcp__', hooks: [cardGuard.guard] }] },
-      mcpServers: { trellini: { type: 'http', url: TRELLINI_MCP_URL, alwaysLoad: true, headers: { Authorization: `Bearer ${token}` } } },
+      mcpServers: { trellini: { type: 'stdio', command: process.execPath, args: [require.resolve('./trellini-mcp/index.js')], alwaysLoad: true, env: { VOLCANO_API_URL: TRELLINI_API_URL, VOLCANO_SERVICE_KEY: TRELLINI_SERVICE_KEY, VOLCANO_DATABASE: TRELLINI_DATABASE || 'trellini' } } },
       systemPrompt: 'You are recording a LaunchBrief request in Trellini. Call only create_card. Never invent a task id. Return only JSON.',
     },
   );
@@ -112,4 +106,4 @@ async function writeBrief(idea, prompt, history) {
   return response;
 }
 
-module.exports = { createTrelliniTask, writeBrief, makeTrelliniCardGuard };
+module.exports = { createTrelliniTask, writeBrief, makeTrelliniCardGuard, verifyTrelliniTarget };
