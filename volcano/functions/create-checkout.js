@@ -19,7 +19,7 @@ exports.handler = async (event) => {
       cancel_url: cancel,
       client_reference_id: auth.user_id,
       customer_email: auth.email || undefined,
-      metadata: { launchbrief_user_id: auth.user_id, launchbrief_credits: String(credits) },
+      metadata: { launchbrief_user_id: auth.user_id, launchbrief_credits: String(credits), launchbrief_price_id: STRIPE_PRICE_ID },
     }, UUID.test(event.checkout_id || '') ? { idempotencyKey: event.checkout_id } : undefined);
     if (!session.url) throw new Error('Stripe returned no Checkout URL');
     return reply(200, { url: session.url });

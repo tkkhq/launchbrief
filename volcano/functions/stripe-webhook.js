@@ -40,7 +40,7 @@ exports.handler = async (event) => {
   if (session.mode !== 'payment' || session.payment_status !== 'paid' || !UUID.test(userId || '') || session.client_reference_id !== userId || !Number.isInteger(credits) || credits < 1 || credits > 1000) return reply(400, { error: 'Invalid paid Checkout session.' });
   try {
     const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 2 });
-    if (items.has_more || items.data.length !== 1 || items.data[0].price?.id !== process.env.STRIPE_PRICE_ID || items.data[0].quantity !== 1) return reply(400, { error: 'Checkout price does not match the credit pack.' });
+    if (items.has_more || items.data.length !== 1 || !session.metadata?.launchbrief_price_id || items.data[0].price?.id !== session.metadata.launchbrief_price_id || items.data[0].quantity !== 1) return reply(400, { error: 'Checkout price does not match the credit pack.' });
     const db = await client(null, true);
     await grantCredits(db, session.id, userId, credits);
     return reply(200, { received: true });

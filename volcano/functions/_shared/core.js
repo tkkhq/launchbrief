@@ -36,7 +36,7 @@ async function one(query, message) {
 async function claimCredit(db, userId, operationId) {
   const prior = await one(db.from('launch_credits').select('id').eq('user_id', userId).eq('spent_on', operationId).limit(1), 'Checking credit');
   if (prior) return 'prior';
-  const { data: available, error } = await db.from('launch_credits').select('id').eq('user_id', userId).is('spent_at', null).order('created_at', { ascending: true }).limit(20);
+  const { data: available, error } = await db.from('launch_credits').select('id').eq('user_id', userId).is('spent_at', null).order('created_at', { ascending: true }).limit(1000);
   if (error) throw new Error(`Reading credits: ${error.message}`);
   for (const credit of available || []) {
     const { data, error: spendError } = await db.update('launch_credits', { spent_on: operationId, spent_at: new Date().toISOString() }).eq('id', credit.id).eq('user_id', userId).is('spent_at', null);
