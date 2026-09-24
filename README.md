@@ -38,13 +38,19 @@ npm run build
 npm test
 ```
 
-This request is build-only, so local services, migrations, function invocations, Stripe charges, and cloud deployment have not been run. The server needs outbound access to Anthropic, Trellini, and Stripe, and the Volcano Function runtime must support the Claude Agent SDK child process. Confirm this with a local stack before production use.
+The server needs outbound access to Anthropic, Trellini, and Stripe, and the Volcano Function runtime must support the Claude Agent SDK child process. Agent execution and paid Checkout remain unverified until their credentials are configured.
 
 ## Local run and deployment steps
 
 When ready to exercise the app locally, follow the Volcano CLI flow: `volcano start`, `volcano variables deploy`, `volcano functions deploy --all`, `volcano config deploy`, `volcano migrations deploy --all -d app`, and `volcano storage bucket create launchbrief-decks --allowed-mime-type application/vnd.openxmlformats-officedocument.presentationml.presentation`. Then run `npm run dev` for the frontend. Create the private bucket before using the PPT action; the bucket's default owner policies govern download access. Configure Stripe's webhook endpoint to the deployed `stripe-webhook` HTTP Function URL, subscribing to the two Checkout events above. Use the URL reported by Volcano after deployment; no endpoint URL is assumed in this repo.
 
-Cloud deploy requires an authenticated Volcano project and explicit approval. Deploy server variables, Functions, configuration, migrations, the storage bucket, and the frontend only after the IDs and secrets above are available. The configured `STRIPE_PRICE_ID` must represent the entire `CREDITS_PER_PACK` pack as one line item; the app does not calculate prices itself.
+The configured `STRIPE_PRICE_ID` must represent the entire `CREDITS_PER_PACK` pack as one line item; the app does not calculate prices itself. Missing external credentials leave brief generation and Checkout unavailable without creating charges.
+
+## Staging deployment (2026-09-24)
+
+- LaunchBrief project `ca20b9da-464f-4202-9513-bf3e52c2b1c4`: [app](https://eff19528-a1be-4397-a099-bf3729dd275e.frontends.staging.volcano.run/), [Stripe webhook](https://4812dc37-48e4-4c32-b7dd-f56be9f7341f.functions.staging.volcano.run/). Database `app`, private `launchbrief-decks` bucket, four Functions, and email signup without confirmation are deployed.
+- Separate Trellini project `53754e67-b4cd-49fb-be63-6928b86f4887`: [board app](https://a922367c-c26d-43b0-8a86-c2e70d6bd856.frontends.staging.volcano.run/), [public board view](https://2978473f-edd5-441c-bcdf-b23c3724f122.frontends.staging.volcano.run/), [MCP endpoint](https://6213366b-acbd-4392-964e-2f1f2e3051fd.functions.staging.volcano.run/). Its source repository was not edited.
+- To enable generation, set `ANTHROPIC_API_KEY` and the Trellini agent credentials, board ID, and column ID listed above. To enable purchases, set the Stripe variables, register the webhook URL with Stripe for `checkout.session.completed` and `checkout.session.async_payment_succeeded`, then verify a paid test Checkout and credit grant.
 
 ## Known integration boundaries
 
