@@ -20,7 +20,8 @@ Copy `volcano/volcano.env.example` to the ignored `volcano/volcano.env`; replace
 | `VOLCANO_API_URL`, `VOLCANO_ANON_KEY`, `VOLCANO_SERVICE_KEY`, `VOLCANO_DATABASE` | Volcano Functions and database; service key stays server-only. |
 | `NEXT_PUBLIC_VOLCANO_API_URL`, `NEXT_PUBLIC_VOLCANO_ANON_KEY`, `NEXT_PUBLIC_VOLCANO_DATABASE` | Browser Volcano client. |
 | `ANTHROPIC_API_KEY`, `CLAUDE_MODEL` | Claude Agent SDK. The default model is `claude-sonnet-4-6`. |
-| `TRELLINI_MCP_URL`, `TRELLINI_MCP_TOKEN` | Full hosted Streamable HTTP MCP endpoint and a Trellini authenticated user bearer token with board access. |
+| `TRELLINI_MCP_URL`, `TRELLINI_API_URL`, `TRELLINI_ANON_KEY` | Full hosted Streamable HTTP MCP endpoint and the new Trellini project's API URL and browser key. |
+| `TRELLINI_AGENT_EMAIL`, `TRELLINI_AGENT_PASSWORD` | Dedicated Trellini user credentials. LaunchBrief signs in for a current RLS-scoped MCP bearer token. Keep the password server-side. |
 | `TRELLINI_BOARD_ID`, `TRELLINI_COLUMN_ID` | Existing Trellini board and destination column UUIDs. |
 | `TRELLINI_CARD_URL_TEMPLATE` | Optional verified task deep link with `{board_id}` and `{card_id}` placeholders. Trellini currently establishes `/board/{board_id}` but does not establish a card deep-link contract. |
 | `APP_BASE_URL` | LaunchBrief origin for Checkout redirects and the link placed in Trellini card notes. |

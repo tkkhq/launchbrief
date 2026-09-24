@@ -1,4 +1,21 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+let trelliniToken = null;
+let trelliniSignIn = null;
+
+async function getTrelliniToken() {
+  if (trelliniToken && Date.now() < trelliniToken.expiresAt) return trelliniToken.value;
+  if (!trelliniSignIn) {
+    trelliniSignIn = (async () => {
+      const { VolcanoAuth } = await import('@volcano.dev/sdk');
+      const auth = new VolcanoAuth({ apiUrl: process.env.TRELLINI_API_URL, anonKey: process.env.TRELLINI_ANON_KEY });
+      const { session, error } = await auth.auth.signIn({ email: process.env.TRELLINI_AGENT_EMAIL, password: process.env.TRELLINI_AGENT_PASSWORD });
+      if (error || !session?.access_token) throw new Error(`Trellini agent sign-in failed: ${error?.message || 'no session'}`);
+      trelliniToken = { value: session.access_token, expiresAt: Date.now() + Math.max(0, session.expires_in - 60) * 1000 };
+      return trelliniToken.value;
+    })().finally(() => { trelliniSignIn = null; });
+  }
+  return trelliniSignIn;
+}
 
 async function runAgent(prompt, options = {}) {
   const { query } = await import('@anthropic-ai/claude-agent-sdk');
@@ -51,9 +68,10 @@ function makeTrelliniCardGuard({ boardId, columnId, title, notes }) {
 }
 
 async function createTrelliniTask(idea, prompt, ideaId) {
-  const { TRELLINI_MCP_URL, TRELLINI_MCP_TOKEN, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL } = process.env;
-  if (![TRELLINI_MCP_URL, TRELLINI_MCP_TOKEN, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL].every(Boolean)) throw new Error('Trellini integration variables are incomplete');
+  const { TRELLINI_MCP_URL, TRELLINI_API_URL, TRELLINI_ANON_KEY, TRELLINI_AGENT_EMAIL, TRELLINI_AGENT_PASSWORD, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL } = process.env;
+  if (![TRELLINI_MCP_URL, TRELLINI_API_URL, TRELLINI_ANON_KEY, TRELLINI_AGENT_EMAIL, TRELLINI_AGENT_PASSWORD, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL].every(Boolean)) throw new Error('Trellini integration variables are incomplete');
   if (![TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID].every(id => UUID.test(id))) throw new Error('Trellini board or column ID is invalid');
+  const token = await getTrelliniToken();
   const notes = `LaunchBrief idea: ${new URL(`/ideas/${ideaId}`, APP_BASE_URL).toString()}\n\nProduct: ${idea.product_name}\nTarget customer: ${idea.target_customer}\nCategory: ${idea.category}\n\nPrompt:\n${prompt}`;
   const cardGuard = makeTrelliniCardGuard({ boardId: TRELLINI_BOARD_ID, columnId: TRELLINI_COLUMN_ID, title: `LaunchBrief: ${idea.product_name}`, notes });
   const run = await runAgent(
@@ -63,7 +81,7 @@ async function createTrelliniTask(idea, prompt, ideaId) {
       requireJson: false,
       allowedTools: ['mcp__trellini__create_card'],
       hooks: { PreToolUse: [{ matcher: '^mcp__', hooks: [cardGuard.guard] }] },
-      mcpServers: { trellini: { type: 'http', url: TRELLINI_MCP_URL, alwaysLoad: true, headers: { Authorization: `Bearer ${TRELLINI_MCP_TOKEN}` } } },
+      mcpServers: { trellini: { type: 'http', url: TRELLINI_MCP_URL, alwaysLoad: true, headers: { Authorization: `Bearer ${token}` } } },
       systemPrompt: 'You are recording a LaunchBrief request in Trellini. Call only create_card. Never invent a task id. Return only JSON.',
     },
   );
