@@ -15,6 +15,7 @@ functions:
   - name: stripe-webhook
     public: true
     invocation_mode: http
+    http_auth_mode: none
 
 frontend_shared_variables:
   - NEXT_PUBLIC_VOLCANO_API_URL
