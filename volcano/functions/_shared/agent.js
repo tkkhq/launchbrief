@@ -75,7 +75,7 @@ async function createTrelliniTask(idea, prompt, ideaId) {
       requireJson: false,
       allowedTools: ['mcp__trellini__create_card'],
       hooks: { PreToolUse: [{ matcher: '^mcp__', hooks: [cardGuard.guard] }] },
-      mcpServers: { trellini: { type: 'stdio', command: process.execPath, args: [require.resolve('./trellini-mcp/index.js')], alwaysLoad: true, env: { VOLCANO_API_URL: TRELLINI_API_URL, VOLCANO_SERVICE_KEY: TRELLINI_SERVICE_KEY, VOLCANO_DATABASE: TRELLINI_DATABASE || 'trellini' } } },
+      mcpServers: { trellini: { type: 'stdio', command: process.execPath, args: [require.resolve('./trellini-mcp/index.mjs')], alwaysLoad: true, env: { VOLCANO_API_URL: TRELLINI_API_URL, VOLCANO_SERVICE_KEY: TRELLINI_SERVICE_KEY, VOLCANO_DATABASE: TRELLINI_DATABASE || 'trellini' } } },
       systemPrompt: 'You are recording a LaunchBrief request in Trellini. Call only create_card. Never invent a task id. Return only JSON.',
     },
   );

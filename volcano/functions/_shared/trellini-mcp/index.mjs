@@ -1,12 +1,12 @@
-import './load-env.js';
+import './load-env.mjs';
 import { readFile, stat } from 'node:fs/promises';
 import { extname } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { attachmentPath, deleteRows, insertRow, LEGACY_ORG_ID, MCP_ACTOR, notifyBoardChange, notifyBoardsListChange, positionBetween, selectRows, updateRows, uploadAttachmentFile, } from './volcano.js';
-import { requireBoard, requireCard, requireColumn } from './ownership.js';
-import { BOARD_TEMPLATES } from './templates.js';
+import { attachmentPath, deleteRows, insertRow, LEGACY_ORG_ID, MCP_ACTOR, notifyBoardChange, notifyBoardsListChange, positionBetween, selectRows, updateRows, uploadAttachmentFile, } from './volcano.mjs';
+import { requireBoard, requireCard, requireColumn } from './ownership.mjs';
+import { BOARD_TEMPLATES } from './templates.mjs';
 const Accent = z.enum(['violet', 'cyan', 'amber', 'rose', 'lime', 'slate']);
 const Priority = z.enum(['low', 'normal', 'high']);
 const TemplateId = z.enum(BOARD_TEMPLATES.map((t) => t.id));

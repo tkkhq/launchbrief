@@ -1,4 +1,4 @@
-import { LEGACY_ORG_ID, selectOne } from './volcano.js';
+import { LEGACY_ORG_ID, selectOne } from './volcano.mjs';
 /**
  * The service key bypasses RLS entirely, so unlike the app itself, nothing
  * here stops a tool from touching a board outside this app's one org unless
