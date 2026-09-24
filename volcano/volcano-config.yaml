@@ -4,6 +4,8 @@ auth:
   providers:
     email_password:
       enabled: true
+  email_verification:
+    require_confirmation: false
 
 functions:
   - name: generate-brief

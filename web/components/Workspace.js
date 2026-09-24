@@ -80,7 +80,7 @@ export default function Workspace({ initialIdeaId = null }) {
       if (authMode === 'signup') {
         const { session, error } = await auth.signUp({ email: authForm.email.trim(), password: authForm.password });
         if (error) throw error;
-        setAuthNotice('Account created. Check your email to verify it, then sign in.');
+        setAuthNotice(session ? 'Account created.' : 'Account created. Sign in to continue.');
         if (!session) setAuthMode('signin');
       } else if (authMode === 'forgot') {
         const { error } = await auth.resetPasswordForEmail(authForm.email.trim());
