@@ -1,11 +1,12 @@
 {
-  "name": "volcano-nextjs-starter",
+  "name": "launchbrief",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev web",
     "build": "next build web",
-    "start": "next start web"
+    "start": "next start web",
+    "test": "node --test tests/*.test.js"
   },
   "dependencies": {
     "@volcano.dev/sdk": "latest",

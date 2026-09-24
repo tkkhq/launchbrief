@@ -1,0 +1,26 @@
+version: 1
+
+auth:
+  providers:
+    email_password:
+      enabled: true
+
+functions:
+  - name: generate-brief
+    public: false
+  - name: create-deck
+    public: false
+  - name: create-checkout
+    public: false
+  - name: stripe-webhook
+    public: true
+    invocation_mode: http
+
+frontend_shared_variables:
+  - NEXT_PUBLIC_VOLCANO_API_URL
+  - NEXT_PUBLIC_VOLCANO_ANON_KEY
+  - NEXT_PUBLIC_VOLCANO_DATABASE
+
+frontends:
+  - name: web
+    variable_scope: shared

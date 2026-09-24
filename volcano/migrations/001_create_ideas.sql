@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS launch_ideas (id UUID PRIMARY KEY, user_id UUID NOT NULL, product_name TEXT NOT NULL, description TEXT NOT NULL, target_customer TEXT NOT NULL, category TEXT NOT NULL, goal TEXT NOT NULL DEFAULT '', task_card_id UUID, task_url TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());

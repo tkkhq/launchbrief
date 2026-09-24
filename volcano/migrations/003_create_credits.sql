@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS launch_credits (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL, stripe_session_id TEXT NOT NULL, ordinal INTEGER NOT NULL, spent_on UUID, spent_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE(stripe_session_id, ordinal), UNIQUE(spent_on));
