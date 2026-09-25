@@ -1,61 +1,101 @@
 # LaunchBrief
 
-A Volcano app that turns a signed-in user's product idea into a saved launch brief. Each initial prompt and follow-up costs one credit. An optional PPT deck costs one additional credit. Stripe Checkout sells credit packs, and a signed Stripe webhook grants credits only after payment. The OpenAI SDK writes the brief and requests a Trellini task through the standalone MCP server for each prompt.
+LaunchBrief turns a product idea into a short, saved launch brief. A signed-in user enters a product name, description, target customer, category, and optional goal or constraint. The app shows progress, then returns research notes and a recommendation covering the customer problem, positioning, and a small MVP scope. Users can revisit prior ideas, ask follow-up questions, and create a PowerPoint deck from any completed brief.
 
-## What is built
+Research notes are labeled as **model-generated assumptions**. LaunchBrief does not currently use an external research source, so it does not present those notes as sourced findings or invent citations.
 
-- Volcano Auth email/password sign up, sign in, sign out, and password reset request.
-- Owner-scoped Volcano Database records for ideas, conversation turns, and individual credits. Browser sessions can read their own rows through RLS; server Functions make the writes.
-- Briefs with customer problem, positioning, a small MVP scope, and research notes clearly labeled as model assumptions. The agent has no web research tool and cannot assert external sources.
-- A saved progress/status record and owner-only Trellini card ID for each prompt. Trellini card notes link back to the LaunchBrief idea.
-- A private five-slide PPT file in Volcano Storage, downloadable by its owner.
-- Stripe hosted Checkout and idempotent credit fulfillment for `checkout.session.completed` and `checkout.session.async_payment_succeeded`. A signed webhook checks the purchased Price and quantity before granting credits.
+## How it works
 
-## Configuration
+| Action | Cost | Result |
+| --- | ---: | --- |
+| Submit an idea | 1 credit | Saved brief and Trellini task |
+| Send a follow-up | 1 credit | New saved brief in the same idea history and a Trellini task |
+| Create a PPT deck | 1 credit | Five-slide `.pptx` saved for download |
 
-The root `.env.example` lists every environment field without real credentials. For local development, copy `volcano/volcano.env.example` to the ignored `volcano/volcano.env` and `web/.env.example` to the ignored `web/.env.local`; replace placeholders. `NEXT_PUBLIC_*` values are public browser settings; all other keys are server-only. Supply:
+Users buy credit packs through Stripe Checkout. A signed Stripe webhook grants credits after payment. Credits are not seeded automatically; Checkout must be configured before a new user can submit an idea.
 
-| Value | Purpose |
-| --- | --- |
-| `VOLCANO_API_URL`, `VOLCANO_ANON_KEY`, `VOLCANO_SERVICE_KEY`, `VOLCANO_DATABASE` | Volcano Functions and database; service key stays server-only. |
-| `NEXT_PUBLIC_VOLCANO_API_URL`, `NEXT_PUBLIC_VOLCANO_ANON_KEY`, `NEXT_PUBLIC_VOLCANO_DATABASE` | Browser Volcano client. |
-| `OPENAI_API_KEY`, `OPENAI_MODEL` | Server-side OpenAI SDK key and model. The default model is `gpt-5-mini`. |
-| `OPENAI_BASE_URL` | Optional OpenAI-compatible proxy endpoint. The proxy operator must implement the Responses API, including function calling and structured outputs. |
-| `TRELLINI_API_URL`, `TRELLINI_SERVICE_KEY`, `TRELLINI_DATABASE` | Trellini project API URL, server-only service key, and database name (`trellini` by default). |
-| `TRELLINI_BOARD_ID`, `TRELLINI_COLUMN_ID` | Existing Trellini board and destination column UUIDs. |
-| `TRELLINI_CARD_URL_TEMPLATE` | Optional verified task deep link with `{board_id}` and `{card_id}` placeholders. Trellini currently establishes `/board/{board_id}` but does not establish a card deep-link contract. |
-| `APP_BASE_URL` | LaunchBrief origin for Checkout redirects and the link placed in Trellini card notes. |
-| `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`, `CREDITS_PER_PACK` | One-time credit-pack Price, webhook verification secret, and pack size. |
+The app uses Next.js for the interface and Volcano Auth, Database, Functions, and Storage for user accounts and saved work. Server-side Functions call the OpenAI SDK to write briefs and use Trellini's standalone MCP server to record each prompt. Trellini is for the LaunchBrief owner to manage tasks; LaunchBrief users do not need Trellini accounts. The MCP snapshot bundled with LaunchBrief is described in [its provenance file](volcano/functions/_shared/trellini-mcp/PROVENANCE.md).
 
-LaunchBrief uses a compiled snapshot of Trellini's existing standalone MCP server, launched over stdio by the MCP client. That server accepts a Trellini project service key and checks its target board's legacy organization before writes. LaunchBrief additionally checks that the configured column belongs to the configured board. OpenAI is offered only a zero-argument `create_card` function; after exactly one valid request, LaunchBrief calls the MCP tool once with server-supplied fields and validates its returned card ID. The service key bypasses Trellini RLS, so it must stay server-side. The separately deployed HTTP MCP Function still requires a signed-in user bearer token; a live service-key initialize probe returned 401 there. No Trellini password is needed by LaunchBrief.
+## Requirements
 
-## Build validation
+- Node.js and npm, plus the Volcano CLI and a Volcano project.
+- A separate Trellini project with a board, destination column, and project service key for task tracking.
+- An OpenAI API key with usable API credits.
+- For credit purchases, a Stripe account, a one-time credit-pack Price, and a webhook signing secret.
+
+## Configure the app
+
+Install the frontend and Function dependencies:
 
 ```sh
-npm install
-npm --prefix volcano/functions install
-npm run build
-npm test
+npm ci
+npm ci --prefix volcano/functions
 ```
 
-The server needs outbound access to OpenAI, Trellini, and Stripe, and the Volcano Function runtime must support the Trellini MCP child process. Live OpenAI execution needs usable API credits, and paid Checkout remains unverified until its credentials are configured.
+Copy the environment templates and fill in their values:
 
-## Local run and deployment steps
+```sh
+cp volcano/volcano.env.example volcano/volcano.env
+cp web/.env.example web/.env.local
+```
 
-When ready to exercise the app locally, follow the Volcano CLI flow: `volcano start`, `volcano variables deploy`, `volcano functions deploy --all`, `volcano config deploy`, `volcano migrations deploy --all -d app`, and `volcano storage bucket create launchbrief-decks --allowed-mime-type application/vnd.openxmlformats-officedocument.presentationml.presentation`. Then run `npm run dev` for the frontend. Create the private bucket before using the PPT action; the bucket's default owner policies govern download access. Configure Stripe's webhook endpoint to the deployed `stripe-webhook` HTTP Function URL, subscribing to the two Checkout events above. Use the URL reported by Volcano after deployment; no endpoint URL is assumed in this repo.
+[`.env.example`](.env.example) is the complete field inventory. Keep populated environment files and service keys out of Git. `NEXT_PUBLIC_*` values are browser-visible; all API and service keys belong in Volcano's server-side variables.
 
-The configured `STRIPE_PRICE_ID` must represent the entire `CREDITS_PER_PACK` pack as one line item; the app does not calculate prices itself. Missing external credentials leave brief generation and Checkout unavailable without creating charges.
+| Variables | Use |
+| --- | --- |
+| `VOLCANO_API_URL`, `VOLCANO_ANON_KEY`, `VOLCANO_SERVICE_KEY`, `VOLCANO_DATABASE` | LaunchBrief's Volcano API and database. Keep the service key server-side. |
+| `NEXT_PUBLIC_VOLCANO_API_URL`, `NEXT_PUBLIC_VOLCANO_ANON_KEY`, `NEXT_PUBLIC_VOLCANO_DATABASE` | Browser connection to the LaunchBrief project. |
+| `APP_BASE_URL` | LaunchBrief's public origin for Checkout redirects and links in Trellini task notes. |
+| `OPENAI_API_KEY`, `OPENAI_MODEL` | Brief generation and Trellini tool requests. The default model is `gpt-5-mini`. |
+| `OPENAI_BASE_URL` | Optional OpenAI-compatible proxy endpoint. It must support the Responses API, function calling, and structured outputs. |
+| `TRELLINI_API_URL`, `TRELLINI_SERVICE_KEY`, `TRELLINI_DATABASE` | Separate Trellini project API, service key, and database (`trellini` by default). |
+| `TRELLINI_BOARD_ID`, `TRELLINI_COLUMN_ID` | Destination board and column UUIDs in Trellini. |
+| `TRELLINI_CARD_URL_TEMPLATE` | Optional verified card link pattern using `{board_id}` and `{card_id}`. Leave empty without a confirmed deep-link format. |
+| `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`, `CREDITS_PER_PACK` | Stripe Checkout, webhook verification, and the number of credits granted by one purchased pack. |
 
-## Staging deployment (2026-09-24)
+The Trellini service key has privileged access to its project. LaunchBrief checks that the configured column belongs to the board, sends only server-controlled card fields to MCP, and saves a task ID only when MCP returns a valid one. Keep the service key in the Function environment.
 
-- LaunchBrief project `ca20b9da-464f-4202-9513-bf3e52c2b1c4`: [app](https://eff19528-a1be-4397-a099-bf3729dd275e.frontends.staging.volcano.run/), [Stripe webhook](https://4812dc37-48e4-4c32-b7dd-f56be9f7341f.functions.staging.volcano.run/). Database `app`, private `launchbrief-decks` bucket, four Functions, and email signup without confirmation are deployed.
-- Separate Trellini project `53754e67-b4cd-49fb-be63-6928b86f4887`: [board app](https://a922367c-c26d-43b0-8a86-c2e70d6bd856.frontends.staging.volcano.run/), [public board view](https://2978473f-edd5-441c-bcdf-b23c3724f122.frontends.staging.volcano.run/), [MCP endpoint](https://6213366b-acbd-4392-964e-2f1f2e3051fd.functions.staging.volcano.run/). Its source repository was not edited.
-- Its private `LaunchBrief tasks` board is `b1909bd4-1c07-4d32-b1cc-c98cfece1bcd`; its `Incoming ideas` column is `0b045138-332e-4d62-9c92-0633cb7562c0`.
-- The previous Claude version generated an assumption-labeled brief and created a labeled Trellini test card (`c1aae829-04e5-4fdb-bd4e-c8e5dc523428`). The OpenAI migration passes local tests and build. `OPENAI_API_KEY` and `OPENAI_MODEL` are active server-side, the old `ANTHROPIC_API_KEY` variable was removed, and the updated `generate-brief` Function built and became active. An unauthenticated cloud invocation returned the expected 401. A direct OpenAI brief request returned HTTP 429 because the supplied key has no API credits remaining, so live OpenAI output and the new MCP bridge remain unverified. To enable purchases, set the Stripe variables, register the webhook URL with Stripe for `checkout.session.completed` and `checkout.session.async_payment_succeeded`, then verify a paid test Checkout and credit grant. The complete credit, persistence, and PPT flow has not yet been exercised in the deployed app.
+## Run locally
 
-## Known integration boundaries
+From the repository root, start Volcano and deploy the local resources:
 
-- Trellini's standalone MCP `create_card` schema is confirmed in `../trellini/mcp/src/index.ts`: `column_id`, `title`, optional `notes`, `priority`, and `labels`. The compiled snapshot in `volcano/functions/_shared/trellini-mcp/` comes from Trellini commit `b83bb184d7ca37f7693f55410adf60766d55f73c`. LaunchBrief supplies the card fields directly to the MCP tool and requires an actual tool result with a UUID before storing a task ID. No Trellini files are changed.
-- Trellini has no confirmed card deep-link URL. The card ID remains available to the owner, and each card's notes link to its LaunchBrief idea. End users do not receive Trellini links.
-- The current brief notes are model assumptions. External research needs a source provider and source-verification contract before sourced findings can be shown.
-- The brief generation Function waits for OpenAI and Trellini in one request. The app saves progress and results, but a production deployment needs a measured function timeout and may need a durable runner if agent execution exceeds it.
+```sh
+volcano start
+volcano variables deploy
+volcano functions deploy --all
+volcano config deploy
+volcano migrations deploy --all -d app
+volcano storage bucket create launchbrief-decks --allowed-mime-type application/vnd.openxmlformats-officedocument.presentationml.presentation
+npm run dev
+```
+
+Open `http://localhost:3000`. The migrations create the idea, conversation, and credit tables with owner-scoped read policies. The Volcano CLI does not track applied migrations, so run the full migration set only against a fresh database. The deck bucket must be private and available before using the PPT action.
+
+For Stripe purchases, point a Stripe webhook at the deployed `stripe-webhook` HTTP Function URL and subscribe to `checkout.session.completed` and `checkout.session.async_payment_succeeded`. Set `STRIPE_WEBHOOK_SECRET` from that endpoint. `STRIPE_PRICE_ID` must identify one whole credit pack; `CREDITS_PER_PACK` is the number of credits granted for that single line item. Complete a test purchase and confirm the credit balance before using paid flows.
+
+## Deploy
+
+Use cloud URLs and keys in `volcano/volcano.env` and `web/.env.local`, then select the LaunchBrief project. For a fresh project, deploy its resources with the Volcano CLI:
+
+```sh
+volcano login
+volcano use <launchbrief-project>
+volcano cloud variables deploy
+volcano cloud functions deploy --all
+volcano cloud config deploy
+volcano cloud storage bucket create launchbrief-decks --allowed-mime-type application/vnd.openxmlformats-officedocument.presentationml.presentation
+volcano cloud frontends deploy --name web --path .
+```
+
+Provision the `app` database and apply the files in `volcano/migrations/` in order before using the app. `volcano migrations deploy --all -d app` connects directly to the configured database and does not track applied migrations; confirm its target and use it only for a fresh database. Deploy Trellini separately; this repository does not modify Trellini.
+
+Before inviting users, verify sign-up and sign-in, a paid test Checkout and credit grant, an idea submission and Trellini task, a follow-up, a saved brief after signing out and back in, and PPT creation and download. The OpenAI key must have usable API credits for brief generation.
+
+## Validate changes
+
+```sh
+npm test
+npm run build
+```
+
+The tests cover credit spending and refund behavior, Stripe webhook validation, and the Trellini task-call guard. The current research notes remain assumptions until an external source provider and a source-verification contract are added. Brief generation waits for OpenAI and Trellini in one Function request; production use should measure its execution time and use a durable runner if it exceeds the Function limit.
