@@ -14,3 +14,7 @@
 .source-prompt{border-left:3px solid #d7e4d6;padding:2px 0 2px 15px;margin:0 0 20px;max-width:760px}
 .source-prompt span{font-size:9px;letter-spacing:.14em;font-weight:800;color:#8da294}
 .source-prompt p{font-size:12px;line-height:1.65;color:#61786a;white-space:pre-wrap;overflow-wrap:anywhere;margin:7px 0 0}
+
+.pending-idea-link{width:100%;border:0;background:transparent;text-align:left;font:inherit}
+.pending-idea-link.active{background:#e4eee6}
+.pending-idea-link:hover{background:#ebf1e8}
