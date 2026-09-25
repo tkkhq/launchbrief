@@ -1,24 +1,33 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-async function openAIClient() {
-  const { default: OpenAI } = await import('openai');
-  const options = { apiKey: process.env.OPENAI_API_KEY };
-  if (process.env.OPENAI_BASE_URL) options.baseURL = process.env.OPENAI_BASE_URL;
-  return new OpenAI(options);
+async function tanstackRuntime() {
+  const [{ chat, toolDefinition, maxIterations }, { createAnthropicChat }] = await Promise.all([
+    import('@tanstack/ai'),
+    import('@tanstack/ai-anthropic'),
+  ]);
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not configured');
+  const options = {};
+  if (process.env.ANTHROPIC_BASE_URL) options.baseURL = process.env.ANTHROPIC_BASE_URL;
+  const adapter = createAnthropicChat(process.env.ANTHROPIC_MODEL || 'claude-sonnet-5', process.env.ANTHROPIC_API_KEY, options);
+  return { chat, toolDefinition, maxIterations, adapter };
 }
 
-function modelName() {
-  return process.env.OPENAI_MODEL || 'gpt-5-mini';
-}
-
-function requireCreateCardCall(response) {
-  if (response?.status !== 'completed') throw new Error('OpenAI did not complete the Trellini tool request');
-  const calls = (response.output || []).filter(item => item.type === 'function_call');
-  if (calls.length !== 1 || calls[0].name !== 'create_card') throw new Error('OpenAI did not request exactly one create_card call');
-  let args;
-  try { args = JSON.parse(calls[0].arguments); } catch { throw new Error('OpenAI returned invalid create_card arguments'); }
-  if (!args || Array.isArray(args) || typeof args !== 'object' || Object.keys(args).length !== 0) throw new Error('OpenAI returned unexpected create_card arguments');
-  return calls[0];
+function makeCreateCardTool(toolDefinition, z, writeCard) {
+  let calls = 0;
+  let cardId = null;
+  const tool = toolDefinition({
+    name: 'create_card',
+    description: 'Record the submitted LaunchBrief request in Trellini.',
+    inputSchema: z.object({}).strict(),
+    outputSchema: z.object({ card_id: z.string() }),
+  }).server(async input => {
+    calls += 1;
+    if (calls !== 1) throw new Error('Trellini create_card may run only once');
+    if (!input || Array.isArray(input) || typeof input !== 'object' || Object.keys(input).length !== 0) throw new Error('Unexpected create_card arguments');
+    cardId = await writeCard();
+    return { card_id: cardId };
+  });
+  return { tool, state: () => ({ calls, cardId }) };
 }
 
 function extractCreatedCardId(result) {
@@ -32,6 +41,21 @@ function extractCreatedCardId(result) {
     } catch {}
   }
   throw new Error('Trellini did not return a verified card id');
+}
+
+function normalizeBrief(brief) {
+  if (!Array.isArray(brief?.research_notes) || !Array.isArray(brief?.recommendation?.mvp_scope)) throw new Error('TanStack AI returned an invalid brief');
+  const result = {
+    research_notes: brief.research_notes.slice(0, 5),
+    recommendation: { ...brief.recommendation, mvp_scope: brief.recommendation.mvp_scope.slice(0, 4) },
+  };
+  if (result.research_notes.length < 3 ||
+      result.research_notes.some(note => note?.kind !== 'assumption' || typeof note.text !== 'string' || !note.text.trim()) ||
+      typeof result.recommendation.customer_problem !== 'string' || !result.recommendation.customer_problem.trim() ||
+      typeof result.recommendation.positioning !== 'string' || !result.recommendation.positioning.trim() ||
+      result.recommendation.mvp_scope.length < 2 ||
+      result.recommendation.mvp_scope.some(item => typeof item !== 'string' || !item.trim())) throw new Error('TanStack AI returned an invalid brief');
+  return result;
 }
 
 async function verifyTrelliniTarget(apiUrl, serviceKey, database, boardId, columnId) {
@@ -74,25 +98,23 @@ async function createTrelliniTask(idea, prompt, ideaId) {
     const available = await mcp.listTools();
     if (!available.tools?.some(tool => tool.name === 'create_card')) throw new Error('Trellini MCP create_card is unavailable');
 
-    const openai = await openAIClient();
-    const response = await openai.responses.create({
-      model: modelName(),
-      instructions: 'Record this LaunchBrief request in Trellini. Call create_card exactly once. The application supplies the exact card fields.',
-      input: JSON.stringify({ title, notes }),
-      tools: [{
-        type: 'function',
-        name: 'create_card',
-        description: 'Ask LaunchBrief to create the submitted task in Trellini.',
-        strict: true,
-        parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
-      }],
-      tool_choice: { type: 'function', name: 'create_card' },
-      parallel_tool_calls: false,
+    const { chat, toolDefinition, maxIterations, adapter } = await tanstackRuntime();
+    const { z } = await import('zod/v4');
+    const { tool, state } = makeCreateCardTool(toolDefinition, z, async () => {
+      const result = await mcp.callTool({ name: 'create_card', arguments: { column_id: TRELLINI_COLUMN_ID, title, notes, priority: 'normal' } });
+      return extractCreatedCardId(result);
     });
-    requireCreateCardCall(response);
-
-    const result = await mcp.callTool({ name: 'create_card', arguments: { column_id: TRELLINI_COLUMN_ID, title, notes, priority: 'normal' } });
-    const verifiedId = extractCreatedCardId(result);
+    await chat({
+      adapter,
+      systemPrompts: ['Record this LaunchBrief request in Trellini. Call create_card exactly once. The application supplies the card fields.'],
+      messages: [{ role: 'user', content: JSON.stringify({ title, notes }) }],
+      tools: [tool],
+      modelOptions: { thinking: { type: 'disabled' }, tool_choice: { type: 'tool', name: 'create_card' }, max_tokens: 512 },
+      agentLoopStrategy: maxIterations(1),
+      stream: false,
+    });
+    const { calls, cardId: verifiedId } = state();
+    if (calls !== 1 || !verifiedId) throw new Error('Trellini create_card was not completed exactly once');
     const template = process.env.TRELLINI_CARD_URL_TEMPLATE;
     const taskUrl = template ? template.replace('{board_id}', TRELLINI_BOARD_ID).replace('{card_id}', verifiedId) : null;
     if (taskUrl && !/^https:\/\//.test(taskUrl)) throw new Error('Trellini card URL template must produce an HTTPS URL');
@@ -104,7 +126,6 @@ async function createTrelliniTask(idea, prompt, ideaId) {
 
 async function writeBrief(idea, prompt, history) {
   const { z } = await import('zod/v4');
-  const { zodTextFormat } = await import('openai/helpers/zod');
   const Brief = z.object({
     research_notes: z.array(z.object({ kind: z.literal('assumption'), text: z.string() })),
     recommendation: z.object({
@@ -113,23 +134,15 @@ async function writeBrief(idea, prompt, history) {
       mvp_scope: z.array(z.string()),
     }),
   });
-  const openai = await openAIClient();
-  const response = await openai.responses.parse({
-    model: modelName(),
-    instructions: 'Write a concise launch brief. You have no external research tools or supplied sources. Every research note must be a model-generated assumption. Do not include citations, source URLs, market statistics, or claims of external research. Recommend a specific customer problem, positioning, and 2 to 4 small MVP items. For follow-ups, use the conversation history and address the latest prompt.',
-    input: JSON.stringify({ idea, prompt, history }),
-    text: { format: zodTextFormat(Brief, 'launch_brief') },
+  const { chat, adapter } = await tanstackRuntime();
+  const brief = await chat({
+    adapter,
+    systemPrompts: ['Write a concise launch brief. You have no external research tools or supplied sources. Write exactly 3 to 5 research notes, and label every note as a model-generated assumption. Do not include citations, source URLs, market statistics, or claims of external research. Recommend a specific customer problem, positioning, and 2 to 4 small MVP items. For follow-ups, use the conversation history and address the latest prompt.'],
+    messages: [{ role: 'user', content: JSON.stringify({ idea, prompt, history }) }],
+    outputSchema: Brief,
+    modelOptions: { thinking: { type: 'disabled' }, max_tokens: 2048 },
   });
-  if (response.status !== 'completed' || !response.output_parsed) throw new Error('OpenAI did not return a complete brief');
-  const brief = response.output_parsed;
-  if (brief.research_notes.length < 3 || brief.research_notes.length > 5 ||
-      brief.research_notes.some(note => !note.text.trim()) ||
-      !brief.recommendation.customer_problem.trim() ||
-      !brief.recommendation.positioning.trim() ||
-      brief.recommendation.mvp_scope.length < 2 ||
-      brief.recommendation.mvp_scope.length > 4 ||
-      brief.recommendation.mvp_scope.some(item => !item.trim())) throw new Error('OpenAI returned an invalid brief');
-  return brief;
+  return normalizeBrief(brief);
 }
 
-module.exports = { createTrelliniTask, writeBrief, requireCreateCardCall, extractCreatedCardId, verifyTrelliniTarget };
+module.exports = { createTrelliniTask, writeBrief, makeCreateCardTool, extractCreatedCardId, normalizeBrief, verifyTrelliniTarget };

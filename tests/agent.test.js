@@ -1,15 +1,22 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { requireCreateCardCall, extractCreatedCardId, verifyTrelliniTarget } = require('../volcano/functions/_shared/agent');
+const { makeCreateCardTool, extractCreatedCardId, normalizeBrief, verifyTrelliniTarget } = require('../volcano/functions/_shared/agent');
 
-test('OpenAI must request exactly one empty create_card call before MCP writes', () => {
-  const call = { type: 'function_call', name: 'create_card', arguments: '{}' };
-  assert.equal(requireCreateCardCall({ status: 'completed', output: [call] }), call);
-  assert.throws(() => requireCreateCardCall({ status: 'incomplete', output: [call] }), /did not complete/);
-  assert.throws(() => requireCreateCardCall({ status: 'completed', output: [call, call] }), /exactly one/);
-  assert.throws(() => requireCreateCardCall({ status: 'completed', output: [{ ...call, name: 'create_board' }] }), /exactly one/);
-  assert.throws(() => requireCreateCardCall({ status: 'completed', output: [{ ...call, arguments: '{"notes":"injected"}' }] }), /unexpected/);
-  assert.throws(() => requireCreateCardCall({ status: 'completed', output: [{ ...call, arguments: 'invalid' }] }), /invalid/);
+test('TanStack server tool writes a Trellini card once with no model-supplied fields', async () => {
+  const [{ toolDefinition }, { z }] = await Promise.all([
+    import('../volcano/functions/node_modules/@tanstack/ai/dist/esm/index.js'),
+    import('../volcano/functions/node_modules/zod/v4/index.js'),
+  ]);
+  let writes = 0;
+  const id = 'c1aae829-04e5-4fdb-bd4e-c8e5dc523428';
+  const { tool, state } = makeCreateCardTool(toolDefinition, z, async () => { writes += 1; return id; });
+  assert.deepEqual(await tool.execute({}), { card_id: id });
+  assert.deepEqual(state(), { calls: 1, cardId: id });
+  await assert.rejects(tool.execute({}), /only once/);
+  assert.equal(writes, 1);
+
+  const guarded = makeCreateCardTool(toolDefinition, z, async () => { throw new Error('must not write'); });
+  await assert.rejects(guarded.tool.execute({ notes: 'injected' }), /Unexpected create_card arguments/);
 });
 
 test('Trellini MCP result must contain a real card UUID', () => {
@@ -17,6 +24,19 @@ test('Trellini MCP result must contain a real card UUID', () => {
   assert.equal(extractCreatedCardId({ content: [{ type: 'text', text: JSON.stringify({ id }) }] }), id);
   assert.throws(() => extractCreatedCardId({ isError: true, content: [] }), /failed/);
   assert.throws(() => extractCreatedCardId({ content: [{ type: 'text', text: '{"id":"not-a-uuid"}' }] }), /verified card id/);
+});
+
+test('brief normalization keeps 3–5 assumptions and 2–4 MVP items', () => {
+  const brief = {
+    research_notes: Array.from({ length: 7 }, (_, i) => ({ kind: 'assumption', text: `Assumption ${i + 1}` })),
+    recommendation: { customer_problem: 'A real problem', positioning: 'A clear position', mvp_scope: ['One', 'Two', 'Three', 'Four', 'Five'] },
+  };
+  const result = normalizeBrief(brief);
+  assert.equal(result.research_notes.length, 5);
+  assert.equal(result.recommendation.mvp_scope.length, 4);
+  assert.equal(brief.research_notes.length, 7);
+  assert.throws(() => normalizeBrief({ ...brief, research_notes: brief.research_notes.slice(0, 2) }), /invalid brief/);
+  assert.throws(() => normalizeBrief({ ...brief, research_notes: [{ kind: 'sourced', text: 'Unverified' }, ...brief.research_notes] }), /invalid brief/);
 });
 
 test('Trellini target check rejects a column on another board', async () => {

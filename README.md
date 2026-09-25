@@ -14,13 +14,13 @@ Research notes are labeled as **model-generated assumptions**. LaunchBrief does 
 
 Users buy credit packs through Stripe Checkout. A signed Stripe webhook grants credits after payment. Credits are not seeded automatically; Checkout must be configured before a new user can submit an idea.
 
-The app uses Next.js for the interface and Volcano Auth, Database, Functions, and Storage for user accounts and saved work. Server-side Functions call the OpenAI SDK to write briefs and use Trellini's standalone MCP server to record each prompt. Trellini is for the LaunchBrief owner to manage tasks; LaunchBrief users do not need Trellini accounts. The MCP snapshot bundled with LaunchBrief is described in [its provenance file](volcano/functions/_shared/trellini-mcp/PROVENANCE.md).
+The app uses Next.js for the interface and Volcano Auth, Database, Functions, and Storage for user accounts and saved work. Server-side Functions use TanStack AI with its Anthropic adapter to write briefs and use Trellini's standalone MCP server to record each prompt. Trellini is for the LaunchBrief owner to manage tasks; LaunchBrief users do not need Trellini accounts. The MCP snapshot bundled with LaunchBrief is described in [its provenance file](volcano/functions/_shared/trellini-mcp/PROVENANCE.md).
 
 ## Requirements
 
 - Node.js and npm, plus the Volcano CLI and a Volcano project.
 - A separate Trellini project with a board, destination column, and project service key for task tracking.
-- An OpenAI API key with usable API credits.
+- An Anthropic API key with usable API credits.
 - For credit purchases, a Stripe account, a one-time credit-pack Price, and a webhook signing secret.
 
 ## Configure the app
@@ -46,8 +46,8 @@ cp web/.env.example web/.env.local
 | `VOLCANO_API_URL`, `VOLCANO_ANON_KEY`, `VOLCANO_SERVICE_KEY`, `VOLCANO_DATABASE` | LaunchBrief's Volcano API and database. Keep the service key server-side. |
 | `NEXT_PUBLIC_VOLCANO_API_URL`, `NEXT_PUBLIC_VOLCANO_ANON_KEY`, `NEXT_PUBLIC_VOLCANO_DATABASE` | Browser connection to the LaunchBrief project. |
 | `APP_BASE_URL` | LaunchBrief's public origin for Checkout redirects and links in Trellini task notes. |
-| `OPENAI_API_KEY`, `OPENAI_MODEL` | Brief generation and Trellini tool requests. The default model is `gpt-5-mini`. |
-| `OPENAI_BASE_URL` | Optional OpenAI-compatible proxy endpoint. It must support the Responses API, function calling, and structured outputs. |
+| `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Brief generation and Trellini tool requests through TanStack AI. The default model is `claude-sonnet-5`. |
+| `ANTHROPIC_BASE_URL` | Optional Anthropic-compatible proxy endpoint. It must support Messages API tool calls and structured outputs. |
 | `TRELLINI_API_URL`, `TRELLINI_SERVICE_KEY`, `TRELLINI_DATABASE` | Separate Trellini project API, service key, and database (`trellini` by default). |
 | `TRELLINI_BOARD_ID`, `TRELLINI_COLUMN_ID` | Destination board and column UUIDs in Trellini. |
 | `TRELLINI_CARD_URL_TEMPLATE` | Optional verified card link pattern using `{board_id}` and `{card_id}`. Leave empty without a confirmed deep-link format. |
@@ -89,7 +89,7 @@ volcano cloud frontends deploy --name web --path .
 
 Provision the `app` database and apply the files in `volcano/migrations/` in order before using the app. `volcano migrations deploy --all -d app` connects directly to the configured database and does not track applied migrations; confirm its target and use it only for a fresh database. Deploy Trellini separately; this repository does not modify Trellini.
 
-Before inviting users, verify sign-up and sign-in, a paid test Checkout and credit grant, an idea submission and Trellini task, a follow-up, a saved brief after signing out and back in, and PPT creation and download. The OpenAI key must have usable API credits for brief generation.
+Before inviting users, verify sign-up and sign-in, a paid test Checkout and credit grant, an idea submission and Trellini task, a follow-up, a saved brief after signing out and back in, and PPT creation and download. The Anthropic key must have usable API credits for brief generation.
 
 ## Validate changes
 
@@ -98,4 +98,4 @@ npm test
 npm run build
 ```
 
-The tests cover credit spending and refund behavior, Stripe webhook validation, and the Trellini task-call guard. The current research notes remain assumptions until an external source provider and a source-verification contract are added. Brief generation waits for OpenAI and Trellini in one Function request; production use should measure its execution time and use a durable runner if it exceeds the Function limit.
+The tests cover credit spending and refund behavior, Stripe webhook validation, and the Trellini task-call guard. The current research notes remain assumptions until an external source provider and a source-verification contract are added. Brief generation waits for Anthropic and Trellini in one Function request; production use should measure its execution time and use a durable runner if it exceeds the Function limit.
