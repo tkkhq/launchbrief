@@ -39,7 +39,7 @@ cp volcano/volcano.env.example volcano/volcano.env
 cp web/.env.example web/.env.local
 ```
 
-[`.env.example`](.env.example) is the complete field inventory. Keep populated environment files and service keys out of Git. `NEXT_PUBLIC_*` values are browser-visible; all API and service keys belong in Volcano's server-side variables.
+[`.env.example`](.env.example) is the complete field inventory. Its filled public URLs and Trellini IDs point to this repository's existing projects; replace them for your own instance. Keep populated environment files and service keys out of Git. `NEXT_PUBLIC_*` values are browser-visible; all API and service keys belong in Volcano's server-side variables.
 
 | Variables | Use |
 | --- | --- |
