@@ -81,6 +81,8 @@ For Stripe purchases, point a Stripe webhook at the deployed `stripe-webhook` HT
 
 Use the [deployment runbook](docs/deployment-runbook.md) for a fresh Volcano project or a lab instance. It covers the separate Trellini prerequisite, cloud migration command, private variables, deployment order, no-credit testing, optional Stripe setup, and acceptance checks.
 
+For a guided workshop, use the [lab materials](lab/README.md), including the participant guide, facilitator notes, clean environment template, and read-only setup helpers. The Trellini one-click deployment step is still pending.
+
 ## Validate changes
 
 ```sh
