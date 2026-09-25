@@ -1,18 +1,22 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { makeTrelliniCardGuard, verifyTrelliniTarget } = require('../volcano/functions/_shared/agent');
+const { requireCreateCardCall, extractCreatedCardId, verifyTrelliniTarget } = require('../volcano/functions/_shared/agent');
 
-test('Trellini tool guard replaces model-supplied card fields and blocks extra calls', async () => {
-  const card = { columnId: 'column', title: 'LaunchBrief: Actual idea', notes: 'Actual submitted prompt' };
-  const { guard, count } = makeTrelliniCardGuard(card);
-  const first = await guard({ tool_name: 'mcp__trellini__create_card', tool_input: { board_id: 'wrong', notes: 'injected' } });
-  assert.equal(first.hookSpecificOutput.permissionDecision, 'allow');
-  assert.deepEqual(first.hookSpecificOutput.updatedInput, { column_id: 'column', title: card.title, notes: card.notes, priority: 'normal' });
-  const second = await guard({ tool_name: 'mcp__trellini__create_card', tool_input: {} });
-  assert.equal(second.hookSpecificOutput.permissionDecision, 'deny');
-  const other = await guard({ tool_name: 'mcp__trellini__create_board', tool_input: {} });
-  assert.equal(other.hookSpecificOutput.permissionDecision, 'deny');
-  assert.equal(count(), 1);
+test('OpenAI must request exactly one empty create_card call before MCP writes', () => {
+  const call = { type: 'function_call', name: 'create_card', arguments: '{}' };
+  assert.equal(requireCreateCardCall({ status: 'completed', output: [call] }), call);
+  assert.throws(() => requireCreateCardCall({ status: 'incomplete', output: [call] }), /did not complete/);
+  assert.throws(() => requireCreateCardCall({ status: 'completed', output: [call, call] }), /exactly one/);
+  assert.throws(() => requireCreateCardCall({ status: 'completed', output: [{ ...call, name: 'create_board' }] }), /exactly one/);
+  assert.throws(() => requireCreateCardCall({ status: 'completed', output: [{ ...call, arguments: '{"notes":"injected"}' }] }), /unexpected/);
+  assert.throws(() => requireCreateCardCall({ status: 'completed', output: [{ ...call, arguments: 'invalid' }] }), /invalid/);
+});
+
+test('Trellini MCP result must contain a real card UUID', () => {
+  const id = 'c1aae829-04e5-4fdb-bd4e-c8e5dc523428';
+  assert.equal(extractCreatedCardId({ content: [{ type: 'text', text: JSON.stringify({ id }) }] }), id);
+  assert.throws(() => extractCreatedCardId({ isError: true, content: [] }), /failed/);
+  assert.throws(() => extractCreatedCardId({ content: [{ type: 'text', text: '{"id":"not-a-uuid"}' }] }), /verified card id/);
 });
 
 test('Trellini target check rejects a column on another board', async () => {
