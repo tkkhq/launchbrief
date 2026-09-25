@@ -11,7 +11,7 @@ exports.handler = async (event) => {
   if (turn.deck_status === 'ready' && turn.deck_path) return reply(200, { path: turn.deck_path });
   const idea = await one(db.from('launch_ideas').select('product_name,target_customer,category').eq('id', turn.idea_id).eq('user_id', auth.user_id).limit(1), 'Reading idea');
   if (!idea) return reply(404, { error: 'Idea not found.' });
-  const charged = await claimCredit(db, auth.user_id, event.operation_id);
+  const charged = await claimCredit(db, auth.user_id, event.operation_id, auth.email);
   if (!charged) return reply(402, { error: 'You need one credit to create a deck.' });
   if (charged === 'prior') return reply(200, { status: 'creating' });
   try {

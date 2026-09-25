@@ -68,37 +68,48 @@ test('a user cannot spend another user credit', async () => {
 });
 
 test('test mode skips credit spending while paid mode remains the default', async () => {
-  const previous = process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED;
+  const previous = [process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED, process.env.LAUNCHBRIEF_TEST_EMAILS];
   const db = fakeDatabase();
   try {
     delete process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED;
-    assert.equal(creditGateEnabled(), true);
+    process.env.LAUNCHBRIEF_TEST_EMAILS = 'owner@example.com';
+    assert.equal(creditGateEnabled('owner@example.com'), true);
     assert.equal(await claimCredit(db, 'user-1', 'paid-1'), false);
     process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED = 'false';
-    assert.equal(creditGateEnabled(), false);
-    assert.equal(await claimCredit(db, 'user-1', 'free-1'), 'free');
+    assert.equal(creditGateEnabled('OWNER@example.com'), false);
+    assert.equal(creditGateEnabled('other@example.com'), true);
+    assert.equal(await claimCredit(db, 'user-1', 'free-1', 'owner@example.com'), 'free');
+    assert.equal(await claimCredit(db, 'user-2', 'other-1', 'other@example.com'), false);
     assert.equal(db.credits.length, 0);
+    delete process.env.LAUNCHBRIEF_TEST_EMAILS;
+    assert.equal(creditGateEnabled('owner@example.com'), true);
     process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED = 'true';
     assert.equal(await claimCredit(db, 'user-1', 'paid-2'), false);
   } finally {
-    if (previous === undefined) delete process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED;
-    else process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED = previous;
+    for (const [key, value] of [['LAUNCHBRIEF_CREDIT_GATE_ENABLED', previous[0]], ['LAUNCHBRIEF_TEST_EMAILS', previous[1]]]) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
   }
 });
 
 test('test mode status requires sign-in and Checkout stays closed', async () => {
-  const previous = process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED;
-  const signedIn = { __volcano_auth: { role: 'authenticated', user_id: 'user-1', access_token: 'token' } };
+  const previous = [process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED, process.env.LAUNCHBRIEF_TEST_EMAILS];
+  const signedIn = { __volcano_auth: { role: 'authenticated', user_id: 'user-1', email: 'owner@example.com', access_token: 'token' } };
+  const other = { __volcano_auth: { role: 'authenticated', user_id: 'user-2', email: 'other@example.com', access_token: 'token' } };
   try {
     process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED = 'false';
+    process.env.LAUNCHBRIEF_TEST_EMAILS = 'owner@example.com';
     assert.equal((await creditMode.handler({})).statusCode, 401);
     assert.deepEqual(JSON.parse((await creditMode.handler(signedIn)).body), { credits_required: false });
+    assert.deepEqual(JSON.parse((await creditMode.handler(other)).body), { credits_required: true });
     const result = await checkout.handler(signedIn);
     assert.equal(result.statusCode, 503);
     assert.match(result.body, /not required in test mode/);
+    assert.match((await checkout.handler(other)).body, /Checkout is not configured/);
   } finally {
-    if (previous === undefined) delete process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED;
-    else process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED = previous;
+    for (const [key, value] of [['LAUNCHBRIEF_CREDIT_GATE_ENABLED', previous[0]], ['LAUNCHBRIEF_TEST_EMAILS', previous[1]]]) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
   }
 });
 
