@@ -79,21 +79,7 @@ For Stripe purchases, point a Stripe webhook at the deployed `stripe-webhook` HT
 
 ## Deploy
 
-Use cloud URLs and keys in `volcano/volcano.env` and `web/.env.local`, then select the LaunchBrief project. For a fresh project, deploy its resources with the Volcano CLI:
-
-```sh
-volcano login
-volcano use <launchbrief-project>
-volcano cloud variables deploy
-volcano cloud functions deploy --all
-volcano cloud config deploy
-volcano cloud storage bucket create launchbrief-decks --allowed-mime-type application/vnd.openxmlformats-officedocument.presentationml.presentation
-volcano cloud frontends deploy --name web --path .
-```
-
-Provision the `app` database and apply the files in `volcano/migrations/` in order before using the app. `volcano migrations deploy --all -d app` connects directly to the configured database and does not track applied migrations; confirm its target and use it only for a fresh database. Deploy Trellini separately; this repository does not modify Trellini.
-
-Before inviting users, verify sign-up and sign-in, a paid test Checkout and credit grant, an idea submission and Trellini task, a follow-up, a saved brief after signing out and back in, and PPT creation and download. The Anthropic key must have usable API credits for brief generation.
+Use the [deployment runbook](docs/deployment-runbook.md) for a fresh Volcano project or a lab instance. It covers the separate Trellini prerequisite, cloud migration command, private variables, deployment order, no-credit testing, optional Stripe setup, and acceptance checks.
 
 ## Validate changes
 
