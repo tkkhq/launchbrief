@@ -1,7 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { client, claimCredit, refundCredit } = require('../volcano/functions/_shared/core');
+const { client, creditGateEnabled, claimCredit, refundCredit } = require('../volcano/functions/_shared/core');
 const { grantCredits } = require('../volcano/functions/stripe-webhook');
+const creditMode = require('../volcano/functions/credit-mode');
+const checkout = require('../volcano/functions/create-checkout');
 
 function fakeDatabase() {
   const credits = [];
@@ -63,6 +65,41 @@ test('a user cannot spend another user credit', async () => {
   await grantCredits(db, 'cs_123', 'user-1', 1);
   assert.equal(await claimCredit(db, 'user-2', 'op-2'), false);
   assert.equal(db.credits[0].spent_on, null);
+});
+
+test('test mode skips credit spending while paid mode remains the default', async () => {
+  const previous = process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED;
+  const db = fakeDatabase();
+  try {
+    delete process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED;
+    assert.equal(creditGateEnabled(), true);
+    assert.equal(await claimCredit(db, 'user-1', 'paid-1'), false);
+    process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED = 'false';
+    assert.equal(creditGateEnabled(), false);
+    assert.equal(await claimCredit(db, 'user-1', 'free-1'), 'free');
+    assert.equal(db.credits.length, 0);
+    process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED = 'true';
+    assert.equal(await claimCredit(db, 'user-1', 'paid-2'), false);
+  } finally {
+    if (previous === undefined) delete process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED;
+    else process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED = previous;
+  }
+});
+
+test('test mode status requires sign-in and Checkout stays closed', async () => {
+  const previous = process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED;
+  const signedIn = { __volcano_auth: { role: 'authenticated', user_id: 'user-1', access_token: 'token' } };
+  try {
+    process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED = 'false';
+    assert.equal((await creditMode.handler({})).statusCode, 401);
+    assert.deepEqual(JSON.parse((await creditMode.handler(signedIn)).body), { credits_required: false });
+    const result = await checkout.handler(signedIn);
+    assert.equal(result.statusCode, 503);
+    assert.match(result.body, /not required in test mode/);
+  } finally {
+    if (previous === undefined) delete process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED;
+    else process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED = previous;
+  }
 });
 
 test('server client uses the service key as its access token', async () => {

@@ -14,6 +14,8 @@ functions:
     public: false
   - name: create-checkout
     public: false
+  - name: credit-mode
+    public: false
   - name: stripe-webhook
     public: true
     invocation_mode: http

@@ -44,7 +44,9 @@ exports.handler = async (event) => {
     if (turnCreated) {
       await db.update('launch_turns', { status: 'failed', error_message: error.message, updated_at: new Date().toISOString() }).eq('id', event.turn_id).eq('user_id', auth.user_id);
     }
-    try { await refundCredit(db, event.turn_id); } catch (refundError) { console.error(refundError); }
-    return reply(500, { error: 'Brief generation failed. The credit was returned if possible.', turn_id: turnCreated ? event.turn_id : null });
+    if (charged === 'new') {
+      try { await refundCredit(db, event.turn_id); } catch (refundError) { console.error(refundError); }
+    }
+    return reply(500, { error: 'Brief generation failed. Any charged credit was returned if possible.', turn_id: turnCreated ? event.turn_id : null });
   }
 };

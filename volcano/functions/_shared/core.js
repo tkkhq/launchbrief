@@ -33,7 +33,12 @@ async function one(query, message) {
   return data?.[0] ?? null;
 }
 
+function creditGateEnabled() {
+  return process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED !== 'false';
+}
+
 async function claimCredit(db, userId, operationId) {
+  if (!creditGateEnabled()) return 'free';
   const prior = await one(db.from('launch_credits').select('id').eq('user_id', userId).eq('spent_on', operationId).limit(1), 'Checking credit');
   if (prior) return 'prior';
   const { data: available, error } = await db.from('launch_credits').select('id').eq('user_id', userId).is('spent_at', null).order('created_at', { ascending: true }).limit(1000);
@@ -56,4 +61,4 @@ async function refundCredit(db, operationId) {
   if (error) throw new Error(`Refunding credit: ${error.message}`);
 }
 
-module.exports = { client, reply, identity, required, one, claimCredit, refundCredit };
+module.exports = { client, reply, identity, required, one, creditGateEnabled, claimCredit, refundCredit };

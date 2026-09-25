@@ -48,7 +48,9 @@ exports.handler = async (event) => {
     return reply(200, { path });
   } catch (error) {
     await db.update('launch_turns', { deck_status: 'failed' }).eq('id', turn.id).eq('user_id', auth.user_id);
-    try { await refundCredit(db, event.operation_id); } catch (refundError) { console.error(refundError); }
-    return reply(500, { error: 'Deck creation failed. The credit was returned if possible.' });
+    if (charged === 'new') {
+      try { await refundCredit(db, event.operation_id); } catch (refundError) { console.error(refundError); }
+    }
+    return reply(500, { error: 'Deck creation failed. Any charged credit was returned if possible.' });
   }
 };
