@@ -17,7 +17,7 @@ exports.handler = async (event) => {
   if (existing) return reply(200, { turn_id: existing.id, status: existing.status });
   const missing = ['ANTHROPIC_API_KEY','TRELLINI_API_URL','TRELLINI_SERVICE_KEY','TRELLINI_BOARD_ID','TRELLINI_COLUMN_ID','APP_BASE_URL'].filter(k => !process.env[k]);
   if (missing.length) return reply(503, { error: `Service is not configured: ${missing.join(', ')}` });
-  const charged = await claimCredit(db, auth.user_id, event.turn_id, auth.email);
+  const charged = await claimCredit(db, auth.user_id, event.turn_id);
   if (!charged) return reply(402, { error: 'You need one credit to create a brief.' });
   if (charged === 'prior') return reply(200, { turn_id: event.turn_id, status: 'tracking' });
   let turnCreated = false;

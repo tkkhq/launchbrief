@@ -4,7 +4,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 exports.handler = async (event) => {
   const auth = identity(event);
   if (!auth) return reply(401, { error: 'Sign in to buy credits.' });
-  if (!creditGateEnabled(auth.email)) return reply(503, { error: 'Credits are not required in test mode.' });
+  if (!creditGateEnabled()) return reply(503, { error: 'Credits are not required in test mode.' });
   const { STRIPE_SECRET_KEY, STRIPE_PRICE_ID, APP_BASE_URL, CREDITS_PER_PACK } = process.env;
   const credits = Number(CREDITS_PER_PACK);
   if (!STRIPE_SECRET_KEY || !STRIPE_PRICE_ID || !APP_BASE_URL || !Number.isInteger(credits) || credits < 1 || credits > 1000) return reply(503, { error: 'Checkout is not configured.' });

@@ -33,14 +33,12 @@ async function one(query, message) {
   return data?.[0] ?? null;
 }
 
-function creditGateEnabled(email) {
-  if (process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED !== 'false' || typeof email !== 'string' || !email.trim()) return true;
-  const allowed = (process.env.LAUNCHBRIEF_TEST_EMAILS || '').split(',').map(value => value.trim().toLowerCase()).filter(Boolean);
-  return !allowed.includes(email.toLowerCase());
+function creditGateEnabled() {
+  return process.env.LAUNCHBRIEF_CREDIT_GATE_ENABLED !== 'false';
 }
 
-async function claimCredit(db, userId, operationId, email) {
-  if (!creditGateEnabled(email)) return 'free';
+async function claimCredit(db, userId, operationId) {
+  if (!creditGateEnabled()) return 'free';
   const prior = await one(db.from('launch_credits').select('id').eq('user_id', userId).eq('spent_on', operationId).limit(1), 'Checking credit');
   if (prior) return 'prior';
   const { data: available, error } = await db.from('launch_credits').select('id').eq('user_id', userId).is('spent_at', null).order('created_at', { ascending: true }).limit(1000);
