@@ -1,6 +1,6 @@
 # LaunchBrief
 
-LaunchBrief turns a product idea into a short, saved launch brief. A signed-in user enters a product name, description, target customer, category, and optional goal or constraint. The app shows progress, then returns research notes and a recommendation covering the customer problem, positioning, and a small MVP scope. Users can revisit prior ideas, ask follow-up questions, and create a PowerPoint deck from any completed brief.
+LaunchBrief turns a product idea into a short, saved launch brief. A signed-in user can write one free-text description or use guided fields for product name, description, target customer, category, and an optional goal or constraint. In free-text mode, TanStack AI organizes the prompt into those fields before the normal briefing workflow begins. The app shows progress, then returns research notes and a recommendation covering the customer problem, positioning, and a small MVP scope. Users can revisit prior ideas, ask follow-up questions, and create a PowerPoint deck from any completed brief.
 
 Research notes are labeled as **model-generated assumptions**. LaunchBrief does not currently use an external research source, so it does not present those notes as sourced findings or invent citations.
 
@@ -8,13 +8,15 @@ Research notes are labeled as **model-generated assumptions**. LaunchBrief does 
 
 | Action | Cost | Result |
 | --- | ---: | --- |
-| Submit an idea | 1 credit | Saved brief and Trellini task |
+| Submit an idea by either input mode | 1 credit | Saved brief and Trellini task |
 | Send a follow-up | 1 credit | New saved brief in the same idea history and a Trellini task |
 | Create a PPT deck | 1 credit | Five-slide `.pptx` saved for download |
 
 The costs above apply when the credit gate is enabled. By default, users buy credit packs through Stripe Checkout. A signed Stripe webhook grants credits after payment. Credits are not seeded automatically. For testing before Stripe is configured, set the server-side `LAUNCHBRIEF_CREDIT_GATE_ENABLED=false`: signed-in users can create briefs, follow-ups, and decks without credits. The app hides Checkout while this mode is active. Set the flag to `true` (or remove it) to restore credit charging. Test mode applies to every signed-in LaunchBrief user and still uses the configured Anthropic API key.
 
 The app uses Next.js for the interface and Volcano Auth, Database, Functions, and Storage for user accounts and saved work. Server-side Functions use TanStack AI with its Anthropic adapter to write briefs and use Trellini's standalone MCP server to record each prompt. Trellini is for the LaunchBrief owner to manage tasks; LaunchBrief users do not need Trellini accounts. The MCP snapshot bundled with LaunchBrief is described in [its provenance file](volcano/functions/_shared/trellini-mcp/PROVENANCE.md).
+
+The free-text path preserves the user's original wording in the saved conversation and Trellini task. The organized product fields are a working interpretation, especially when the prompt leaves a customer or category unspecified. Both input modes cost the same one credit when the credit gate is enabled; free-text organization does not add a charge.
 
 ## Requirements
 
@@ -48,6 +50,7 @@ cp web/.env.example web/.env.local
 | `APP_BASE_URL` | LaunchBrief's public origin for Checkout redirects and links in Trellini task notes. |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Brief generation and Trellini tool requests through TanStack AI. The default model is `claude-sonnet-5`. |
 | `ANTHROPIC_BASE_URL` | Optional Anthropic-compatible proxy endpoint. It must support Messages API tool calls and structured outputs. |
+| `ANTHROPIC_WORKSPACE_ID` | Workspace ID for Anthropic keys that require the `anthropic-workspace-id` header. Leave unset for workspace-scoped keys. |
 | `LAUNCHBRIEF_CREDIT_GATE_ENABLED` | Server-side credit gate. Defaults to enabled; only `false` bypasses credit spending for signed-in users. The browser reads the mode from the private `credit-mode` Function. |
 | `TRELLINI_API_URL`, `TRELLINI_SERVICE_KEY`, `TRELLINI_DATABASE` | Separate Trellini project API, service key, and database (`trellini` by default). |
 | `TRELLINI_BOARD_ID`, `TRELLINI_COLUMN_ID` | Destination board and column UUIDs in Trellini. |
@@ -99,4 +102,4 @@ npm test
 npm run build
 ```
 
-The tests cover credit spending and refund behavior, Stripe webhook validation, and the Trellini task-call guard. The current research notes remain assumptions until an external source provider and a source-verification contract are added. Brief generation waits for Anthropic and Trellini in one Function request; production use should measure its execution time and use a durable runner if it exceeds the Function limit.
+The tests cover credit spending and refund behavior, Stripe webhook validation, idea normalization, and the Trellini task-call guard. The current research notes remain assumptions until an external source provider and a source-verification contract are added. Free-text briefing adds an Anthropic organization call before task tracking and brief writing, all within one Function request; production use should measure its execution time and use a durable runner if it exceeds the Function limit.
