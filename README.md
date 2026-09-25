@@ -13,7 +13,7 @@ A Volcano app that turns a signed-in user's product idea into a saved launch bri
 
 ## Configuration
 
-Copy `volcano/volcano.env.example` to the ignored `volcano/volcano.env`; replace placeholders. Copy `web/.env.example` to the ignored `web/.env.local` for local frontend development. `NEXT_PUBLIC_*` values are public browser settings; all other keys are server-only. Supply:
+The root `.env.example` lists every environment field without real credentials. For local development, copy `volcano/volcano.env.example` to the ignored `volcano/volcano.env` and `web/.env.example` to the ignored `web/.env.local`; replace placeholders. `NEXT_PUBLIC_*` values are public browser settings; all other keys are server-only. Supply:
 
 | Value | Purpose |
 | --- | --- |
