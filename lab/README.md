@@ -3,7 +3,6 @@
 This directory contains materials for a hands-on Volcano lab. Participants deploy Trellini in one Volcano project, then use the CLI to deploy LaunchBrief in a second project.
 
 - [Participant guide](participant-guide.md) — the nine exercise steps and checkpoints.
-- [Facilitator notes](facilitator-notes.md) — preparation, timing, handout values, and recovery paths.
 - [Clean LaunchBrief environment template](launchbrief.env.example) — copy to the gitignored repository-root `.env.cloud`.
 - [Environment checker](scripts/check-env.mjs) — read-only; validates names and values without printing secrets.
 - [Trellini target finder](scripts/list-trellini-targets.mjs) — read-only; lists board and column IDs from the participant's Trellini project.
