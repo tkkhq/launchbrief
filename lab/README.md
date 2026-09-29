@@ -8,7 +8,7 @@ This directory contains materials for a hands-on Volcano lab. Participants deplo
 - [Environment checker](scripts/check-env.mjs) — read-only; validates names and values without printing secrets.
 - [Trellini target finder](scripts/list-trellini-targets.mjs) — read-only; lists board and column IDs from the participant's Trellini project.
 
-The Trellini one-click deployment in step 2 is **not implemented yet**. The facilitator notes define the minimum result it must provide and a manual fallback. Do not publish a participant guide with a made-up deployment URL or claim the one-click path has been verified.
+In staging, step 2 uses Volcano's **Kanban board** template to install Trellini into each participant's first project. Participants redeem their one-month Pro coupon before creating projects, wait for template installation to show **Ready**, and create their own Trellini board and destination column. The facilitator supplies the actual staging dashboard link and coupon instructions in the handout.
 
 Stripe is outside the core lab. Set `LAUNCHBRIEF_CREDIT_GATE_ENABLED=false` so signed-in participants can test brief, follow-up, and PPT creation without buying credits. Model calls still require a working credential. The separate [deployment runbook](../docs/deployment-runbook.md) covers optional paid-mode setup and ongoing operations.
 

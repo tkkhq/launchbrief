@@ -2,7 +2,7 @@
 
 Use this runbook for a new LaunchBrief instance in a Volcano account. LaunchBrief and Trellini use **separate Volcano projects**. Commands are run from the named repository root; check the selected project before every cloud change. The commands below match Volcano CLI v0.34.0 and the checked-in application code. Recheck `volcano <command> --help` if your CLI differs.
 
-This runbook does not change the Trellini repository. Its main `web` frontend is the owner-facing board. Its separate `web-public` frontend is optional for public board sharing and is not required by LaunchBrief.
+This runbook does not change the Trellini repository. The staging lab uses Volcano's **Kanban board** template to install Trellini with one owner-facing `web` frontend. The manual Trellini path below is for a separate source deployment.
 
 ## 1. Collect values and verify the source
 
@@ -37,7 +37,17 @@ The repository contains the Volcano scaffold already; do not run `volcano init` 
 
 ## 3. Prepare Trellini first
 
-For a new Trellini project, run these commands from the **Trellini** repository root. Replace every `YOUR_*` token with your own value, including a supported database region and PostgreSQL version for your Volcano account:
+For the staging lab, redeem the one-month Pro coupon first, then use **Create project → Kanban board → Deploy template** in the staging Volcano dashboard. Wait for the project's Overview to show template installation **Ready**. Open its `web` frontend, sign up, and create a board and destination column. Record the Trellini project ID, board ID, and column ID. The template provisions its own database, browser key, Functions, and frontend; do not run Trellini migrations over it. Create a separate service key for LaunchBrief's server-side task tracking:
+
+```sh
+volcano use YOUR_TRELLINI_PROJECT_ID
+volcano projects list
+volcano projects keys service create launchbrief-integration YOUR_TRELLINI_PROJECT_ID
+```
+
+Store that key privately as `TRELLINI_SERVICE_KEY`, then continue at section 4 to create the separate LaunchBrief project.
+
+For a manual Trellini source deployment outside that template flow, run these commands from the **Trellini** repository root. Replace every `YOUR_*` token with your own value, including a supported database region and PostgreSQL version for your Volcano account:
 
 ```sh
 volcano projects create YOUR_TRELLINI_PROJECT_NAME
@@ -66,7 +76,7 @@ volcano cloud config deploy
 volcano cloud frontends list
 ```
 
-Create `.env.cloud` yourself with values from the Trellini project; do not reuse LaunchBrief's file. Review the config dry run for any Trellini Functions or schedulers that have not been deployed, and follow Trellini's own instructions for those features. Sign in as the Trellini owner and create or confirm the destination board and column. The checked-in Trellini configuration does **not** specify `auth.email_verification.require_confirmation: false`. For a Trellini instance that allows sign-up without email confirmation, add that verified config field under `auth` in **your Trellini checkout** before its config deploy, then confirm the setting. This runbook does not make that Trellini change. LaunchBrief's own config already sets it to `false`.
+Create `.env.cloud` yourself with values from the Trellini project; do not reuse LaunchBrief's file. Review the config dry run for any Trellini Functions or schedulers that have not been deployed, and follow Trellini's own instructions for those features. Sign in as the Trellini owner and create or confirm the destination board and column. For a manual deployment, verify the project's email-confirmation setting before the lab; LaunchBrief's own config explicitly sets it to `false`.
 
 Trellini's README says its full board UI needs a browser key with realtime permissions and, for attachments, storage permissions. The current CLI's `volcano projects keys anon create` help only promises an auth-only key. Provision and verify those extra permissions using a supported Trellini/Volcano setup path before relying on those UI features; this runbook does not invent a CLI flag for them. LaunchBrief's backend task creation uses the bundled Trellini **stdio** MCP server ([snapshot provenance](../volcano/functions/_shared/trellini-mcp/PROVENANCE.md)) and a Trellini service key; it does not require Trellini's HTTP `mcp-server` Function or a Trellini end-user password. If you deploy a different Trellini revision, verify that its MCP `create_card` tool and database fields still match the bundled snapshot before testing LaunchBrief.
 
