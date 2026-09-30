@@ -113,6 +113,7 @@ NEXT_PUBLIC_VOLCANO_API_URL=<launchbrief-volcano-api-url>
 NEXT_PUBLIC_VOLCANO_ANON_KEY=<launchbrief-anon-key>
 NEXT_PUBLIC_VOLCANO_DATABASE=app
 ANTHROPIC_API_KEY=<model-api-key>
+ANTHROPIC_WORKSPACE_ID=<workspace-id-required-by-the-lab-key>
 ANTHROPIC_MODEL=claude-sonnet-5.5
 LAUNCHBRIEF_CREDIT_GATE_ENABLED=false
 TRELLINI_MCP_TRANSPORT=stdio

@@ -54,7 +54,7 @@ Store Stripe credentials with the other server settings in the root `.env`. The 
 | `APP_BASE_URL` | LaunchBrief's public origin for Checkout redirects and links in Trellini task notes. |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Brief generation and Trellini tool requests through TanStack AI. The default model is `claude-sonnet-5.5`. |
 | `ANTHROPIC_BASE_URL` | Optional Anthropic-compatible proxy endpoint. It must support Messages API tool calls and structured outputs. |
-| `ANTHROPIC_WORKSPACE_ID` | Workspace ID for Anthropic keys that require the `anthropic-workspace-id` header. Leave unset for workspace-scoped keys. |
+| `ANTHROPIC_WORKSPACE_ID` | Required with the lab API key. Functions send this value in the `anthropic-workspace-id` header. Keep it in server-side variables. |
 | `LAUNCHBRIEF_CREDIT_GATE_ENABLED` | Server-side credit gate. Defaults to enabled; only `false` bypasses credit spending for signed-in users. The browser reads the mode from the private `credit-mode` Function. |
 | `TRELLINI_MCP_TRANSPORT` | `http` for shared hosted MCP; defaults to `stdio` for the bundled server. |
 | `TRELLINI_MCP_URL`, `TRELLINI_ACCESS_TOKEN` | Required in HTTP mode: confirmed HTTPS MCP endpoint and your own Trellini session token. Keep the token server-side; replace and redeploy variables when expired. |
@@ -63,7 +63,7 @@ Store Stripe credentials with the other server settings in the root `.env`. The 
 | `TRELLINI_CARD_URL_TEMPLATE` | Optional verified card link pattern using `{board_id}` and `{card_id}`. Leave empty without a confirmed deep-link format. |
 | `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`, `CREDITS_PER_PACK` | Needed in paid mode for Stripe Checkout, webhook verification, and the number of credits granted by one purchased pack. |
 
-For the shared-board lab, omit `TRELLINI_SERVICE_KEY`, `TRELLINI_API_URL`, and `TRELLINI_DATABASE`. `TRELLINI_SERVICE_KEY` is a privileged key for the separate Trellini project, used only by the bundled stdio connector. The main template also omits the optional proxy URL, workspace header, and custom card-link settings listed above. `VOLCANO_SERVICE_KEY` is still required for LaunchBrief's backend, including credit operations and webhook processing.
+For the shared-board lab, omit `TRELLINI_SERVICE_KEY`, `TRELLINI_API_URL`, and `TRELLINI_DATABASE`. `TRELLINI_SERVICE_KEY` is a privileged key for the separate Trellini project, used only by the bundled stdio connector. The main template omits the optional proxy URL and custom card-link settings listed above; the lab requires `ANTHROPIC_WORKSPACE_ID`. `VOLCANO_SERVICE_KEY` is still required for LaunchBrief's backend, including credit operations and webhook processing.
 
 HTTP mode uses Trellini's existing user permissions; stdio mode uses a privileged Trellini service key. LaunchBrief checks the configured board/column relationship, supplies the card fields, and saves a task ID only when MCP returns a valid UUID. Keep credentials in the Function environment. Shared-board prompts are visible to everyone with access to that board. A copied HTTP session token is not automatically refreshed.
 

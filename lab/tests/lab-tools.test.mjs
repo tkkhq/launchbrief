@@ -15,6 +15,7 @@ const valid = {
   NEXT_PUBLIC_VOLCANO_ANON_KEY: 'launch-anon',
   NEXT_PUBLIC_VOLCANO_DATABASE: 'app',
   ANTHROPIC_API_KEY: 'model-key',
+  ANTHROPIC_WORKSPACE_ID: 'fixture-workspace',
   LAUNCHBRIEF_CREDIT_GATE_ENABLED: 'true',
   STRIPE_SECRET_KEY: 'stripe-test-secret',
   STRIPE_PRICE_ID: 'price_test',
@@ -86,4 +87,8 @@ test('Trellini target finder only calls existing read-only MCP tools', async () 
 test('Trellini MCP errors do not echo remote error text', async () => {
   const mcp = { async callTool() { return { isError: true, content: [{ type: 'text', text: 'private-token' }] }; } };
   await assert.rejects(() => listTrelliniTargets(mcp), error => /Trellini MCP list_boards failed/.test(error.message));
+});
+
+test('lab model access requires the workspace header value', () => {
+  assert.match(validateLabEnv({ ...valid, ANTHROPIC_WORKSPACE_ID: '' }).errors.join('\n'), /ANTHROPIC_WORKSPACE_ID/);
 });
