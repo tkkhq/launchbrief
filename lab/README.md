@@ -1,14 +1,19 @@
 # LaunchBrief lab
 
-This directory contains materials for a hands-on Volcano lab. Participants deploy Trellini in one Volcano project, then use the CLI to deploy LaunchBrief in a second project.
+A 90-minute lab using a Free Volcano account: each participant creates **one LaunchBrief project with one `web` frontend**. Trellini is already deployed by the facilitator at [trellini.volcano.run](https://trellini.volcano.run). Participants sign up there and watch their LaunchBrief requests appear on the shared board. No Pro coupon or participant Trellini deployment is needed.
 
-- [Participant guide](participant-guide.md) — the nine exercise steps and checkpoints.
-- [Clean LaunchBrief environment template](launchbrief.env.example) — copy to the gitignored repository-root `.env.cloud`.
-- [Environment checker](scripts/check-env.mjs) — read-only; validates names and values without printing secrets.
-- [Trellini target finder](scripts/list-trellini-targets.mjs) — read-only; lists board and column IDs from the participant's Trellini project.
+- [Participant guide](participant-guide.md) — nine activities and checkpoints.
+- [Lab handout](handout.md) — known board website and fields the facilitator must supply.
+- [Environment template](launchbrief.env.example) — copy to the gitignored `.env.cloud`.
+- [Environment checker](scripts/check-env.mjs) — validates required fields without printing secrets.
+- [Trellini target finder](scripts/list-trellini-targets.mjs) — connects to hosted MCP using the participant's token; reads visible board/column IDs without writing cards.
 
-In staging, step 2 uses Volcano's **Kanban board** template to install Trellini into each participant's first project. Participants redeem their one-month Pro coupon before creating projects, wait for template installation to show **Ready**, and create their own Trellini board and destination column. The facilitator supplies the actual staging dashboard link and coupon instructions in the handout.
+LaunchBrief uses `TRELLINI_MCP_TRANSPORT=http` in the lab. Each participant supplies their own Trellini session token in `TRELLINI_ACCESS_TOKEN`, plus the confirmed MCP endpoint and shared destination IDs. The website URL does not establish the MCP endpoint. The instructor's Trellini service key is never distributed. Existing owner-operated deployments can continue using the default `stdio` mode.
 
-Stripe is outside the core lab. Set `LAUNCHBRIEF_CREDIT_GATE_ENABLED=false` so signed-in participants can test brief, follow-up, and PPT creation without buying credits. Model calls still require a working credential. The separate [deployment runbook](../docs/deployment-runbook.md) covers optional paid-mode setup and ongoing operations.
+Prompts posted to Trellini are visible to everyone on the shared board. Use sample ideas suitable for group sharing. Existing Trellini permissions allow collaboration, including editing; the board is not an observer-only view. LaunchBrief's saved briefs, conversations, and decks remain scoped to users in each participant's instance.
 
-Before sharing edits to these materials, run `node --test lab/tests/*.test.mjs` from the repository root. The helper scripts do not deploy or modify cloud resources.
+Stripe is outside the core lab: `LAUNCHBRIEF_CREDIT_GATE_ENABLED=false` enables signed-in brief, follow-up, and PPT testing without buying credits. Model calls still need authorized model access. The repository does not supply an instructor model proxy.
+
+The facilitator must verify hosted MCP access with a newly registered Trellini user before the session, including live board updates and the actual session-token lifetime. Runtime tokens are copied credentials, not automatically refreshed by LaunchBrief.
+
+Before sharing changes, run `npm test`, `node --test lab/tests/*.test.mjs`, and `git diff --check`. Helpers make read-only network calls when explicitly run; they do not deploy resources.

@@ -71,10 +71,12 @@ async function verifyTrelliniTarget(apiUrl, serviceKey, database, boardId, colum
 }
 
 async function createTrelliniTask(idea, prompt, ideaId) {
-  const { TRELLINI_API_URL, TRELLINI_SERVICE_KEY, TRELLINI_DATABASE, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL } = process.env;
-  if (![TRELLINI_API_URL, TRELLINI_SERVICE_KEY, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL].every(Boolean)) throw new Error('Trellini integration variables are incomplete');
+  const { trelliniConnectionConfig, connectTrelliniMcp, callTrelliniTool, listTrelliniTools, verifyHostedTrelliniTarget, trelliniCardArguments } = require('./trellini-connection');
+  const config = trelliniConnectionConfig();
+  const { TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL } = process.env;
+  if (![TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID, APP_BASE_URL].every(Boolean)) throw new Error('Trellini integration variables are incomplete');
   if (![TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID].every(id => UUID.test(id))) throw new Error('Trellini board or column ID is invalid');
-  await verifyTrelliniTarget(TRELLINI_API_URL, TRELLINI_SERVICE_KEY, TRELLINI_DATABASE || 'trellini', TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID);
+  if (config.mode === 'stdio') await verifyTrelliniTarget(config.apiUrl, config.serviceKey, config.database, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID);
 
   const title = 'LaunchBrief: ' + idea.product_name;
   const notes = [
@@ -86,23 +88,18 @@ async function createTrelliniTask(idea, prompt, ideaId) {
     prompt,
   ].join('\n\n');
 
-  const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
-  const { StdioClientTransport } = await import('@modelcontextprotocol/sdk/client/stdio.js');
-  const transport = new StdioClientTransport({
-    command: process.execPath,
-    args: [require.resolve('./trellini-mcp/index.mjs')],
-    env: { VOLCANO_API_URL: TRELLINI_API_URL, VOLCANO_SERVICE_KEY: TRELLINI_SERVICE_KEY, VOLCANO_DATABASE: TRELLINI_DATABASE || 'trellini' },
-  });
-  const mcp = new Client({ name: 'launchbrief', version: '1.0.0' });
+  const mcp = await connectTrelliniMcp(config);
   try {
-    await mcp.connect(transport);
-    const available = await mcp.listTools();
-    if (!available.tools?.some(tool => tool.name === 'create_card')) throw new Error('Trellini MCP create_card is unavailable');
+    if (config.mode === 'http') await verifyHostedTrelliniTarget(mcp, TRELLINI_BOARD_ID, TRELLINI_COLUMN_ID);
+    const available = await listTrelliniTools(mcp);
+    const createCard = available.tools?.find(tool => tool.name === 'create_card');
+    if (!createCard) throw new Error('Trellini MCP create_card is unavailable');
 
     const { chat, toolDefinition, maxIterations, adapter } = await tanstackRuntime();
     const { z } = await import('zod/v4');
     const { tool, state } = makeCreateCardTool(toolDefinition, z, async () => {
-      const result = await mcp.callTool({ name: 'create_card', arguments: { column_id: TRELLINI_COLUMN_ID, title, notes, priority: 'normal' } });
+      const args = trelliniCardArguments(createCard, TRELLINI_BOARD_ID, { column_id: TRELLINI_COLUMN_ID, title, notes, priority: 'normal' });
+      const result = await callTrelliniTool(mcp, 'create_card', args);
       return extractCreatedCardId(result);
     });
     await chat({

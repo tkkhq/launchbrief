@@ -14,9 +14,9 @@ const valid = {
   NEXT_PUBLIC_VOLCANO_DATABASE: 'app',
   ANTHROPIC_API_KEY: 'model-key',
   LAUNCHBRIEF_CREDIT_GATE_ENABLED: 'false',
-  TRELLINI_API_URL: 'https://api.example.test',
-  TRELLINI_SERVICE_KEY: 'trellini-server',
-  TRELLINI_DATABASE: 'trellini',
+  TRELLINI_MCP_TRANSPORT: 'http',
+  TRELLINI_MCP_URL: 'https://mcp.example.test/',
+  TRELLINI_ACCESS_TOKEN: 'participant-token',
   TRELLINI_BOARD_ID: '11111111-1111-4111-8111-111111111111',
   TRELLINI_COLUMN_ID: '22222222-2222-4222-8222-222222222222',
 };
@@ -31,10 +31,10 @@ test('lab env checker distinguishes predeploy from ready and catches cross-proje
   assert.deepEqual(validateLabEnv(valid, 'predeploy').errors, []);
   assert.match(validateLabEnv(valid, 'ready').errors.join('\n'), /APP_BASE_URL/);
   assert.deepEqual(validateLabEnv({ ...valid, APP_BASE_URL: 'https://launch.example.test/' }, 'ready').errors, []);
-  const failures = validateLabEnv({ ...valid, VOLCANO_SERVICE_KEY: valid.TRELLINI_SERVICE_KEY, LAUNCHBRIEF_CREDIT_GATE_ENABLED: 'true' }).errors.join('\n');
-  assert.match(failures, /separate projects/);
+  const failures = validateLabEnv({ ...valid, TRELLINI_SERVICE_KEY: 'owner-secret', LAUNCHBRIEF_CREDIT_GATE_ENABLED: 'true' }).errors.join('\n');
+  assert.match(failures, /remove this/);
   assert.match(failures, /LAUNCHBRIEF_CREDIT_GATE_ENABLED/);
-  assert.doesNotMatch(failures, /trellini-server/);
+  assert.doesNotMatch(failures, /owner-secret/);
 });
 
 test('Trellini target finder only calls existing read-only MCP tools', async () => {
@@ -54,5 +54,5 @@ test('Trellini target finder only calls existing read-only MCP tools', async () 
 
 test('Trellini MCP errors do not echo remote error text', async () => {
   const mcp = { async callTool() { return { isError: true, content: [{ type: 'text', text: 'private-token' }] }; } };
-  await assert.rejects(() => listTrelliniTargets(mcp), error => error.message === 'Trellini MCP list_boards failed.');
+  await assert.rejects(() => listTrelliniTargets(mcp), error => /Trellini MCP list_boards failed/.test(error.message));
 });

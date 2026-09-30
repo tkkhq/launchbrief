@@ -8,7 +8,7 @@ const required = [
   'VOLCANO_API_URL', 'VOLCANO_ANON_KEY', 'VOLCANO_SERVICE_KEY', 'VOLCANO_DATABASE',
   'NEXT_PUBLIC_VOLCANO_API_URL', 'NEXT_PUBLIC_VOLCANO_ANON_KEY', 'NEXT_PUBLIC_VOLCANO_DATABASE',
   'ANTHROPIC_API_KEY', 'LAUNCHBRIEF_CREDIT_GATE_ENABLED',
-  'TRELLINI_API_URL', 'TRELLINI_SERVICE_KEY', 'TRELLINI_DATABASE',
+  'TRELLINI_MCP_TRANSPORT', 'TRELLINI_MCP_URL', 'TRELLINI_ACCESS_TOKEN',
   'TRELLINI_BOARD_ID', 'TRELLINI_COLUMN_ID',
 ];
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -16,7 +16,7 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function validHttps(value) {
   try {
     const url = new URL(value);
-    return url.protocol === 'https:' && Boolean(url.hostname) && !url.username && !url.password;
+    return url.protocol === 'https:' && Boolean(url.hostname) && !url.username && !url.password && !url.hash;
   } catch { return false; }
 }
 
@@ -25,19 +25,20 @@ export function validateLabEnv(values, phase = 'predeploy') {
   const warnings = [];
   for (const name of required) if (isMissing(values[name])) errors.push(`${name}: missing or still a placeholder`);
   if (phase === 'ready' && isMissing(values.APP_BASE_URL)) errors.push('APP_BASE_URL: set this from the deployed frontend URL');
-  for (const name of ['VOLCANO_API_URL', 'NEXT_PUBLIC_VOLCANO_API_URL', 'TRELLINI_API_URL', 'APP_BASE_URL']) {
+  for (const name of ['VOLCANO_API_URL', 'NEXT_PUBLIC_VOLCANO_API_URL', 'TRELLINI_MCP_URL', 'APP_BASE_URL']) {
     if (!isMissing(values[name]) && !validHttps(values[name])) errors.push(`${name}: must be an HTTPS URL without embedded credentials`);
   }
   for (const name of ['TRELLINI_BOARD_ID', 'TRELLINI_COLUMN_ID']) {
     if (!isMissing(values[name]) && !uuid.test(values[name])) errors.push(`${name}: must be a UUID`);
   }
   if (!isMissing(values.TRELLINI_BOARD_ID) && values.TRELLINI_BOARD_ID === values.TRELLINI_COLUMN_ID) errors.push('TRELLINI_BOARD_ID and TRELLINI_COLUMN_ID must differ');
-  for (const [name, expected] of Object.entries({ VOLCANO_DATABASE: 'app', NEXT_PUBLIC_VOLCANO_DATABASE: 'app', TRELLINI_DATABASE: 'trellini', LAUNCHBRIEF_CREDIT_GATE_ENABLED: 'false' })) {
+  for (const [name, expected] of Object.entries({ VOLCANO_DATABASE: 'app', NEXT_PUBLIC_VOLCANO_DATABASE: 'app', TRELLINI_MCP_TRANSPORT: 'http', LAUNCHBRIEF_CREDIT_GATE_ENABLED: 'false' })) {
     if (!isMissing(values[name]) && values[name] !== expected) errors.push(`${name}: expected ${expected} for this lab`);
   }
-  if (!isMissing(values.VOLCANO_SERVICE_KEY) && values.VOLCANO_SERVICE_KEY === values.TRELLINI_SERVICE_KEY) errors.push('VOLCANO_SERVICE_KEY and TRELLINI_SERVICE_KEY must come from separate projects');
+  if (!isMissing(values.TRELLINI_SERVICE_KEY)) errors.push('TRELLINI_SERVICE_KEY: remove this; the shared-board lab uses your own user token');
+  if (/[\r\n]/.test(values.TRELLINI_ACCESS_TOKEN || '')) errors.push('TRELLINI_ACCESS_TOKEN: must be a single session token');
   if (!isMissing(values.VOLCANO_SERVICE_KEY) && values.VOLCANO_SERVICE_KEY === values.NEXT_PUBLIC_VOLCANO_ANON_KEY) errors.push('A service key must never be a NEXT_PUBLIC value');
-  if (!isMissing(values.TRELLINI_SERVICE_KEY) && values.TRELLINI_SERVICE_KEY === values.NEXT_PUBLIC_VOLCANO_ANON_KEY) errors.push('A Trellini service key must never be a NEXT_PUBLIC value');
+  if (!isMissing(values.TRELLINI_ACCESS_TOKEN) && [values.NEXT_PUBLIC_VOLCANO_ANON_KEY, values.VOLCANO_ANON_KEY, values.VOLCANO_SERVICE_KEY].includes(values.TRELLINI_ACCESS_TOKEN)) errors.push('TRELLINI_ACCESS_TOKEN must be a Trellini user token, separate from LaunchBrief keys');
   if (!isMissing(values.VOLCANO_SERVICE_KEY) && values.VOLCANO_SERVICE_KEY === values.VOLCANO_ANON_KEY) errors.push('VOLCANO_ANON_KEY must be a browser key, not a service key');
   if (['STRIPE_SECRET_KEY', 'STRIPE_PRICE_ID', 'STRIPE_WEBHOOK_SECRET'].some(name => !isMissing(values[name]))) warnings.push('Stripe values are not needed in no-credit lab mode');
   return { errors, warnings };

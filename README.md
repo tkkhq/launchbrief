@@ -14,14 +14,14 @@ Research notes are labeled as **model-generated assumptions**. LaunchBrief does 
 
 The costs above apply when the credit gate is enabled. By default, users buy credit packs through Stripe Checkout. A signed Stripe webhook grants credits after payment. Credits are not seeded automatically. For testing before Stripe is configured, set the server-side `LAUNCHBRIEF_CREDIT_GATE_ENABLED=false`: signed-in users can create briefs, follow-ups, and decks without credits. The app hides Checkout while this mode is active. Set the flag to `true` (or remove it) to restore credit charging. Test mode applies to every signed-in LaunchBrief user and still uses the configured Anthropic API key.
 
-The app uses Next.js for the interface and Volcano Auth, Database, Functions, and Storage for user accounts and saved work. Server-side Functions use TanStack AI with its Anthropic adapter to write briefs and use Trellini's standalone MCP server to record each prompt. Trellini is for the LaunchBrief owner to manage tasks; LaunchBrief users do not need Trellini accounts. The MCP snapshot bundled with LaunchBrief is described in [its provenance file](volcano/functions/_shared/trellini-mcp/PROVENANCE.md).
+The app uses Next.js for the interface and Volcano Auth, Database, Functions, and Storage for user accounts and saved work. Server-side Functions use TanStack AI with its Anthropic adapter to write briefs and record each prompt through Trellini MCP. Owner-operated deployments use the bundled stdio server with a Trellini service key; the shared-board lab uses hosted MCP with each participant's Trellini user session token. Ordinary LaunchBrief end users do not need Trellini accounts; lab participants sign up on the shared board to supply their connection token and watch tasks. The MCP snapshot bundled with LaunchBrief is described in [its provenance file](volcano/functions/_shared/trellini-mcp/PROVENANCE.md).
 
 The free-text path preserves the user's original wording in the saved conversation and Trellini task. The organized product fields are a working interpretation, especially when the prompt leaves a customer or category unspecified. Both input modes cost the same one credit when the credit gate is enabled; free-text organization does not add a charge.
 
 ## Requirements
 
 - Node.js and npm, plus the Volcano CLI and a Volcano project.
-- A separate Trellini project with a board, destination column, and project service key for task tracking.
+- Access to a Trellini board and destination column: either a hosted MCP endpoint and your Trellini user session token, or an owner-operated project service key for stdio MCP.
 - An Anthropic API key with usable API credits.
 - For credit purchases, a Stripe account, a one-time credit-pack Price, and a webhook signing secret.
 
@@ -52,12 +52,14 @@ cp web/.env.example web/.env.local
 | `ANTHROPIC_BASE_URL` | Optional Anthropic-compatible proxy endpoint. It must support Messages API tool calls and structured outputs. |
 | `ANTHROPIC_WORKSPACE_ID` | Workspace ID for Anthropic keys that require the `anthropic-workspace-id` header. Leave unset for workspace-scoped keys. |
 | `LAUNCHBRIEF_CREDIT_GATE_ENABLED` | Server-side credit gate. Defaults to enabled; only `false` bypasses credit spending for signed-in users. The browser reads the mode from the private `credit-mode` Function. |
-| `TRELLINI_API_URL`, `TRELLINI_SERVICE_KEY`, `TRELLINI_DATABASE` | Separate Trellini project API, service key, and database (`trellini` by default). |
+| `TRELLINI_MCP_TRANSPORT` | `http` for shared hosted MCP; defaults to `stdio` for the bundled server. |
+| `TRELLINI_MCP_URL`, `TRELLINI_ACCESS_TOKEN` | Required in HTTP mode: confirmed HTTPS MCP endpoint and your own Trellini session token. Keep the token server-side; replace and redeploy variables when expired. |
+| `TRELLINI_API_URL`, `TRELLINI_SERVICE_KEY`, `TRELLINI_DATABASE` | Required only in stdio mode: owner-operated Trellini project API, service key, and database (`trellini` by default). |
 | `TRELLINI_BOARD_ID`, `TRELLINI_COLUMN_ID` | Destination board and column UUIDs in Trellini. |
 | `TRELLINI_CARD_URL_TEMPLATE` | Optional verified card link pattern using `{board_id}` and `{card_id}`. Leave empty without a confirmed deep-link format. |
 | `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`, `CREDITS_PER_PACK` | Needed in paid mode for Stripe Checkout, webhook verification, and the number of credits granted by one purchased pack. |
 
-The Trellini service key has privileged access to its project. LaunchBrief checks that the configured column belongs to the board, sends only server-controlled card fields to MCP, and saves a task ID only when MCP returns a valid one. Keep the service key in the Function environment.
+HTTP mode uses Trellini's existing user permissions; stdio mode uses a privileged Trellini service key. LaunchBrief checks the configured board/column relationship, supplies the card fields, and saves a task ID only when MCP returns a valid UUID. Keep credentials in the Function environment. Shared-board prompts are visible to everyone with access to that board. A copied HTTP session token is not automatically refreshed.
 
 ## Run locally
 
@@ -81,7 +83,7 @@ For Stripe purchases, point a Stripe webhook at the deployed `stripe-webhook` HT
 
 Use the [deployment runbook](docs/deployment-runbook.md) for a fresh Volcano project or a lab instance. It covers the separate Trellini prerequisite, cloud migration command, private variables, deployment order, no-credit testing, optional Stripe setup, and acceptance checks.
 
-For a guided workshop, use the [lab materials](lab/README.md), including the participant guide, clean environment template, and read-only setup helpers. The staging Volcano dashboard offers a one-click **Kanban board** template for each participant's Trellini project.
+For a guided workshop, use the [lab materials](lab/README.md), including the participant guide, clean environment template, and read-only setup helpers. Each participant uses a Free account with one LaunchBrief project and one frontend, and joins the instructor-owned board at [trellini.volcano.run](https://trellini.volcano.run).
 
 ## Validate changes
 
@@ -90,4 +92,4 @@ npm test
 npm run build
 ```
 
-The tests cover credit spending and refund behavior, Stripe webhook validation, idea normalization, and the Trellini task-call guard. The current research notes remain assumptions until an external source provider and a source-verification contract are added. Free-text briefing adds an Anthropic organization call before task tracking and brief writing, all within one Function request; production use should measure its execution time and use a durable runner if it exceeds the Function limit.
+The tests cover credit spending and refund behavior, Stripe webhook validation, idea normalization, the Trellini task-call guard, and hosted MCP authentication and target validation. Lab-helper tests run separately with `node --test lab/tests/*.test.mjs`. The current research notes remain assumptions until an external source provider and a source-verification contract are added. Free-text briefing adds an Anthropic organization call before task tracking and brief writing, all within one Function request; production use should measure its execution time and use a durable runner if it exceeds the Function limit.
