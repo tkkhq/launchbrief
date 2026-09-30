@@ -16,7 +16,7 @@ const valid = {
   LAUNCHBRIEF_CREDIT_GATE_ENABLED: 'true',
   STRIPE_SECRET_KEY: 'stripe-test-secret',
   STRIPE_PRICE_ID: 'price_test',
-  CREDITS_PER_PACK: '10',
+  CREDITS_PER_PACK: '5',
   TRELLINI_MCP_TRANSPORT: 'http',
   TRELLINI_MCP_URL: 'https://mcp.example.test/',
   TRELLINI_ACCESS_TOKEN: 'participant-token',

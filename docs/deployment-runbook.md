@@ -184,7 +184,7 @@ volcano cloud variables list
 
 Run a Stripe test purchase. Confirm the webhook grants exactly `CREDITS_PER_PACK` credits once, then confirm an idea or follow-up costs one credit and PPT creation costs one credit. The app does not seed credits automatically. If Checkout or granting fails, inspect `create-checkout` and `stripe-webhook` runtime logs and the Stripe endpoint delivery result before inviting users.
 
-For the lab, use Stripe test-mode values, keep the gate `true`, run `node lab/scripts/check-env.mjs ready` after supplying `APP_BASE_URL` and `STRIPE_WEBHOOK_SECRET`, and acquire at least three credits for the idea, follow-up, and PPT checkpoints. Complete the saved-history and shared-board checks from section 5 with credit charging enabled.
+For the lab, use Stripe test-mode values, keep the gate `true`, run `node lab/scripts/check-env.mjs ready` after supplying `APP_BASE_URL` and `STRIPE_WEBHOOK_SECRET`, and buy one five-credit pack (`CREDITS_PER_PACK=5`) for the idea, follow-up, and PPT checkpoints. Those three actions leave two credits. Complete the saved-history and shared-board checks from section 5 with credit charging enabled.
 
 ## 7. Updating or rolling back
 
