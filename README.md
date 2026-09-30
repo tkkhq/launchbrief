@@ -41,7 +41,9 @@ cp .env.example .env
 cp web/.env.example web/.env.local
 ```
 
-[`.env.example`](.env.example) is the complete field inventory. Its filled public URLs and Trellini IDs point to this repository's existing projects; replace them for your own instance. Keep populated environment files and service keys out of Git. `NEXT_PUBLIC_*` values are browser-visible; all API and service keys belong in Volcano's server-side variables.
+[`.env.example`](.env.example) is the complete field inventory with production API URLs. Set `APP_BASE_URL` to your deployed LaunchBrief frontend origin and replace the Trellini IDs for your target board and column. Keep populated environment files and service keys out of Git. `NEXT_PUBLIC_*` values are browser-visible; model API keys and service keys belong in Volcano's server-side variables.
+
+Set `VOLCANO_ANON_KEY` and `NEXT_PUBLIC_VOLCANO_ANON_KEY` to the **same LaunchBrief project anon key**. Functions read the first name; the Next.js browser build reads the second. The anon key is public and access is governed by user authentication and database policies. Never put `VOLCANO_SERVICE_KEY` in a `NEXT_PUBLIC_*` variable. The templates in `web/.env.example` and `volcano/volcano.env.example` use localhost for local development; replace those URLs and keys when deploying to production.
 
 Store Stripe credentials with the other server settings in the root `.env`. The lab helpers read this file; CLI deployment uses `--file .env` to populate project variables. Hosted Functions read those variables through `process.env`. If you already have a populated `.env`, edit it instead of copying over it.
 
