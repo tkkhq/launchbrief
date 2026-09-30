@@ -1,6 +1,6 @@
 # LaunchBrief deployment runbook
 
-Use this runbook for a new LaunchBrief instance in a Volcano account. LaunchBrief runs in your Volcano project. Trellini can be an instructor-owned shared deployment or a separately owner-operated project. Commands are run from the named repository root; check the selected project before every cloud change. The commands below match Volcano CLI v0.34.0 and the checked-in application code. Recheck `volcano <command> --help` if your CLI differs.
+Use this runbook for a new LaunchBrief instance in a Volcano account. LaunchBrief runs in your Volcano project. Trellini can be an instructor-owned shared deployment or a separately owner-operated project. Commands are run from the named repository root; check the selected project before every cloud change. The commands below match Volcano CLI v0.36.0 and the checked-in application code. Recheck `volcano <command> --help` if your CLI differs.
 
 The Free-account lab uses one participant-owned LaunchBrief project and one frontend, with the instructor-owned Trellini board at https://trellini.volcano.run. The facilitator distributes participant instructions separately. No Pro coupon or participant Trellini deployment is required. This runbook also retains a manual owner-operated Trellini deployment path.
 
@@ -50,14 +50,14 @@ TRELLINI_COLUMN_ID=<shared-column-uuid>
 
 Run `node lab/scripts/list-trellini-targets.mjs` after installing Function dependencies to verify read access. The website URL alone does not establish the MCP endpoint. Never distribute the instructor's Trellini service key. Copied user tokens expire; retrieve a fresh one and redeploy LaunchBrief variables when needed. Then proceed to section 4, creating only your LaunchBrief project. Shared prompts are visible to the group, and Trellini's existing collaborative permissions permit edits.
 
-For a manual owner-operated Trellini deployment outside the shared-board lab, run these commands from the **Trellini** repository root. Replace every `YOUR_*` token with your own value, including a supported database region and PostgreSQL version for your Volcano account:
+For a manual owner-operated Trellini deployment outside the shared-board lab, run these commands from the **Trellini** repository root. Replace every `YOUR_*` token with your own project value. The example uses `us-east-1` and PostgreSQL `16`:
 
 ```sh
 volcano projects create YOUR_TRELLINI_PROJECT_NAME
 volcano projects list
 volcano use YOUR_TRELLINI_PROJECT_ID
 volcano projects list
-volcano cloud databases create trellini --region YOUR_REGION --pg-version YOUR_PG_VERSION
+volcano cloud databases create trellini --region us-east-1 --pg-version 16
 volcano cloud databases get trellini
 volcano cloud databases migration up --all -d trellini
 ```
@@ -96,7 +96,7 @@ volcano use YOUR_LAUNCHBRIEF_PROJECT_ID
 volcano projects list
 volcano projects keys anon list YOUR_LAUNCHBRIEF_PROJECT_ID
 volcano projects keys service create launchbrief-server YOUR_LAUNCHBRIEF_PROJECT_ID
-volcano cloud databases create app --region YOUR_REGION --pg-version YOUR_PG_VERSION
+volcano cloud databases create app --region us-east-1 --pg-version 16
 volcano cloud databases get app
 volcano cloud databases migration up --all -d app
 volcano cloud storage bucket create launchbrief-decks --allowed-mime-type application/vnd.openxmlformats-officedocument.presentationml.presentation
