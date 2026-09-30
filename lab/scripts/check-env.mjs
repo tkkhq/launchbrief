@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { isMissing, readLabEnv } from './env-file.mjs';
 
 const required = [
-  'VOLCANO_API_URL', 'VOLCANO_ANON_KEY', 'VOLCANO_SERVICE_KEY', 'VOLCANO_DATABASE',
+  'VOLCANO_SERVICE_KEY', 'VOLCANO_DATABASE',
   'NEXT_PUBLIC_VOLCANO_API_URL', 'NEXT_PUBLIC_VOLCANO_ANON_KEY', 'NEXT_PUBLIC_VOLCANO_DATABASE',
   'ANTHROPIC_API_KEY', 'LAUNCHBRIEF_CREDIT_GATE_ENABLED',
   'TRELLINI_MCP_TRANSPORT', 'TRELLINI_MCP_URL', 'TRELLINI_ACCESS_TOKEN',
@@ -27,7 +27,7 @@ export function validateLabEnv(values, phase = 'predeploy') {
   for (const name of required) if (isMissing(values[name])) errors.push(`${name}: missing or still a placeholder`);
   if (phase === 'ready' && isMissing(values.APP_BASE_URL)) errors.push('APP_BASE_URL: set this from the deployed frontend URL');
   if (phase === 'ready' && isMissing(values.STRIPE_WEBHOOK_SECRET)) errors.push('STRIPE_WEBHOOK_SECRET: register the deployed webhook endpoint and set its signing secret');
-  for (const name of ['VOLCANO_API_URL', 'NEXT_PUBLIC_VOLCANO_API_URL', 'TRELLINI_MCP_URL', 'APP_BASE_URL']) {
+  for (const name of ['NEXT_PUBLIC_VOLCANO_API_URL', 'TRELLINI_MCP_URL', 'APP_BASE_URL']) {
     if (!isMissing(values[name]) && !validHttps(values[name])) errors.push(`${name}: must be an HTTPS URL without embedded credentials`);
   }
   for (const name of ['TRELLINI_BOARD_ID', 'TRELLINI_COLUMN_ID']) {
@@ -40,8 +40,7 @@ export function validateLabEnv(values, phase = 'predeploy') {
   if (!isMissing(values.TRELLINI_SERVICE_KEY)) errors.push('TRELLINI_SERVICE_KEY: remove this; the shared-board lab uses your own user token');
   if (/[\r\n]/.test(values.TRELLINI_ACCESS_TOKEN || '')) errors.push('TRELLINI_ACCESS_TOKEN: must be a single session token');
   if (!isMissing(values.VOLCANO_SERVICE_KEY) && values.VOLCANO_SERVICE_KEY === values.NEXT_PUBLIC_VOLCANO_ANON_KEY) errors.push('A service key must never be a NEXT_PUBLIC value');
-  if (!isMissing(values.TRELLINI_ACCESS_TOKEN) && [values.NEXT_PUBLIC_VOLCANO_ANON_KEY, values.VOLCANO_ANON_KEY, values.VOLCANO_SERVICE_KEY].includes(values.TRELLINI_ACCESS_TOKEN)) errors.push('TRELLINI_ACCESS_TOKEN must be a Trellini user token, separate from LaunchBrief keys');
-  if (!isMissing(values.VOLCANO_SERVICE_KEY) && values.VOLCANO_SERVICE_KEY === values.VOLCANO_ANON_KEY) errors.push('VOLCANO_ANON_KEY must be a browser key, not a service key');
+  if (!isMissing(values.TRELLINI_ACCESS_TOKEN) && [values.NEXT_PUBLIC_VOLCANO_ANON_KEY, values.VOLCANO_SERVICE_KEY].includes(values.TRELLINI_ACCESS_TOKEN)) errors.push('TRELLINI_ACCESS_TOKEN must be a Trellini user token, separate from LaunchBrief keys');
   if (!isMissing(values.CREDITS_PER_PACK)) {
     const credits = Number(values.CREDITS_PER_PACK);
     if (!Number.isInteger(credits) || credits < 1 || credits > 1000) errors.push('CREDITS_PER_PACK: must be an integer from 1 to 1000');

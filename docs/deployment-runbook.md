@@ -11,7 +11,7 @@ The Free-account lab uses one participant-owned LaunchBrief project and one fron
 | LaunchBrief project ID, API URL, browser and server keys | Your own Volcano account and supported CLI key commands. |
 | Trellini connection | Shared lab: confirmed hosted MCP URL and your Trellini user session token. Owner-operated stdio: Trellini project API URL and service key. |
 | Trellini board and column UUIDs | Shared lab: facilitator-supplied IDs, verified through hosted MCP. Owner-operated: a board and column in your Trellini project. |
-| Model credential | An API key that can call the configured Anthropic model. LaunchBrief uses TanStack AI's Anthropic adapter; the checked-in default is `claude-sonnet-5`. |
+| Model credential | An API key that can call the configured Anthropic model. LaunchBrief uses TanStack AI's Anthropic adapter; the checked-in default is `claude-sonnet-5.5`. |
 | Stripe values, if charging for credits | A Stripe secret key, a **one-time** credit-pack Price ID, the number of credits in that pack, and a webhook signing secret after the endpoint is registered. |
 | LaunchBrief public URL | `volcano cloud frontends list` after the first frontend deployment. Use it for `APP_BASE_URL`. |
 
@@ -107,15 +107,13 @@ If no usable LaunchBrief browser key exists, create one with `volcano projects k
 For the shared lab, copy `lab/launchbrief.env.example`, use HTTP mode as described in section 3, and keep `LAUNCHBRIEF_CREDIT_GATE_ENABLED=true`. Supply Stripe test-mode Checkout fields before deployment, then complete section 6 to register the webhook and buy at least three test credits before generation. For an owner-operated stdio deployment outside the lab, create a private, gitignored `.env` in the LaunchBrief repository root. Replace every placeholder below with a value from **your** projects. The `NEXT_PUBLIC_*` entries are browser-visible. All other keys stay server-side. The following standalone example starts in no-credit test mode so Stripe can be added later.
 
 ```dotenv
-VOLCANO_API_URL=<launchbrief-volcano-api-url>
-VOLCANO_ANON_KEY=<launchbrief-anon-key>
 VOLCANO_SERVICE_KEY=<launchbrief-service-key>
 VOLCANO_DATABASE=app
 NEXT_PUBLIC_VOLCANO_API_URL=<launchbrief-volcano-api-url>
 NEXT_PUBLIC_VOLCANO_ANON_KEY=<launchbrief-anon-key>
 NEXT_PUBLIC_VOLCANO_DATABASE=app
 ANTHROPIC_API_KEY=<model-api-key>
-ANTHROPIC_MODEL=claude-sonnet-5
+ANTHROPIC_MODEL=claude-sonnet-5.5
 LAUNCHBRIEF_CREDIT_GATE_ENABLED=false
 TRELLINI_MCP_TRANSPORT=stdio
 TRELLINI_API_URL=<trellini-volcano-api-url>

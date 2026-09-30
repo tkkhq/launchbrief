@@ -9,8 +9,6 @@ import { validateLabEnv } from '../scripts/check-env.mjs';
 import { listTrelliniTargets } from '../scripts/list-trellini-targets.mjs';
 
 const valid = {
-  VOLCANO_API_URL: 'https://api.example.test',
-  VOLCANO_ANON_KEY: 'launch-anon',
   VOLCANO_SERVICE_KEY: 'launch-server',
   VOLCANO_DATABASE: 'app',
   NEXT_PUBLIC_VOLCANO_API_URL: 'https://api.example.test',

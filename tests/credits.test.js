@@ -103,9 +103,9 @@ test('test mode status requires sign-in and Checkout stays closed', async () => 
 });
 
 test('server client uses the service key as its access token', async () => {
-  const previous = ['VOLCANO_API_URL','VOLCANO_ANON_KEY','VOLCANO_SERVICE_KEY','VOLCANO_DATABASE'].map(key => [key, process.env[key]]);
-  process.env.VOLCANO_API_URL = 'http://localhost:8000';
-  process.env.VOLCANO_ANON_KEY = 'ak-test';
+  const previous = ['NEXT_PUBLIC_VOLCANO_API_URL','NEXT_PUBLIC_VOLCANO_ANON_KEY','VOLCANO_SERVICE_KEY','VOLCANO_DATABASE'].map(key => [key, process.env[key]]);
+  process.env.NEXT_PUBLIC_VOLCANO_API_URL = 'http://localhost:8000';
+  process.env.NEXT_PUBLIC_VOLCANO_ANON_KEY = 'ak-test';
   process.env.VOLCANO_SERVICE_KEY = 'sk-test';
   process.env.VOLCANO_DATABASE = 'app';
   try {

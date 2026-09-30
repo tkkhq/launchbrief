@@ -41,18 +41,18 @@ cp .env.example .env
 cp web/.env.example web/.env.local
 ```
 
-[`.env.example`](.env.example) is the complete field inventory with production API URLs. Set `APP_BASE_URL` to your deployed LaunchBrief frontend origin and replace the Trellini IDs for your target board and column. Keep populated environment files and service keys out of Git. `NEXT_PUBLIC_*` values are browser-visible; model API keys and service keys belong in Volcano's server-side variables.
+[`.env.example`](.env.example) contains the standard setup with a production API URL and the shared-board HTTP MCP connection. Set `APP_BASE_URL` to your deployed LaunchBrief frontend origin and replace the Trellini IDs for your target board and column. Keep populated environment files and service keys out of Git. `NEXT_PUBLIC_*` values are browser-visible; model API keys and service keys belong in Volcano's server-side variables.
 
-Set `VOLCANO_ANON_KEY` and `NEXT_PUBLIC_VOLCANO_ANON_KEY` to the **same LaunchBrief project anon key**. Functions read the first name; the Next.js browser build reads the second. The anon key is public and access is governed by user authentication and database policies. Never put `VOLCANO_SERVICE_KEY` in a `NEXT_PUBLIC_*` variable. The templates in `web/.env.example` and `volcano/volcano.env.example` use localhost for local development; replace those URLs and keys when deploying to production.
+Functions and the Next.js browser build share `NEXT_PUBLIC_VOLCANO_API_URL` and `NEXT_PUBLIC_VOLCANO_ANON_KEY`. Set the latter to your LaunchBrief project anon key. The anon key is public and access is governed by user authentication and database policies. Never put `VOLCANO_SERVICE_KEY` in a `NEXT_PUBLIC_*` variable. Remove the old `VOLCANO_API_URL` and `VOLCANO_ANON_KEY` entries from your LaunchBrief environment. The templates in `web/.env.example` and `volcano/volcano.env.example` use localhost for local development; replace those URLs and keys when deploying to production.
 
 Store Stripe credentials with the other server settings in the root `.env`. The lab helpers read this file; CLI deployment uses `--file .env` to populate project variables. Hosted Functions read those variables through `process.env`. If you already have a populated `.env`, edit it instead of copying over it.
 
 | Variables | Use |
 | --- | --- |
-| `VOLCANO_API_URL`, `VOLCANO_ANON_KEY`, `VOLCANO_SERVICE_KEY`, `VOLCANO_DATABASE` | LaunchBrief's Volcano API and database. Keep the service key server-side. |
-| `NEXT_PUBLIC_VOLCANO_API_URL`, `NEXT_PUBLIC_VOLCANO_ANON_KEY`, `NEXT_PUBLIC_VOLCANO_DATABASE` | Browser connection to the LaunchBrief project. |
+| `VOLCANO_SERVICE_KEY`, `VOLCANO_DATABASE` | Server access to LaunchBrief's database. Keep the service key server-side. |
+| `NEXT_PUBLIC_VOLCANO_API_URL`, `NEXT_PUBLIC_VOLCANO_ANON_KEY`, `NEXT_PUBLIC_VOLCANO_DATABASE` | Shared API URL and anon key for Functions and the browser; database name for the browser. |
 | `APP_BASE_URL` | LaunchBrief's public origin for Checkout redirects and links in Trellini task notes. |
-| `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Brief generation and Trellini tool requests through TanStack AI. The default model is `claude-sonnet-5`. |
+| `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Brief generation and Trellini tool requests through TanStack AI. The default model is `claude-sonnet-5.5`. |
 | `ANTHROPIC_BASE_URL` | Optional Anthropic-compatible proxy endpoint. It must support Messages API tool calls and structured outputs. |
 | `ANTHROPIC_WORKSPACE_ID` | Workspace ID for Anthropic keys that require the `anthropic-workspace-id` header. Leave unset for workspace-scoped keys. |
 | `LAUNCHBRIEF_CREDIT_GATE_ENABLED` | Server-side credit gate. Defaults to enabled; only `false` bypasses credit spending for signed-in users. The browser reads the mode from the private `credit-mode` Function. |
@@ -62,6 +62,8 @@ Store Stripe credentials with the other server settings in the root `.env`. The 
 | `TRELLINI_BOARD_ID`, `TRELLINI_COLUMN_ID` | Destination board and column UUIDs in Trellini. |
 | `TRELLINI_CARD_URL_TEMPLATE` | Optional verified card link pattern using `{board_id}` and `{card_id}`. Leave empty without a confirmed deep-link format. |
 | `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`, `CREDITS_PER_PACK` | Needed in paid mode for Stripe Checkout, webhook verification, and the number of credits granted by one purchased pack. |
+
+For the shared-board lab, omit `TRELLINI_SERVICE_KEY`, `TRELLINI_API_URL`, and `TRELLINI_DATABASE`. `TRELLINI_SERVICE_KEY` is a privileged key for the separate Trellini project, used only by the bundled stdio connector. The main template also omits the optional proxy URL, workspace header, and custom card-link settings listed above. `VOLCANO_SERVICE_KEY` is still required for LaunchBrief's backend, including credit operations and webhook processing.
 
 HTTP mode uses Trellini's existing user permissions; stdio mode uses a privileged Trellini service key. LaunchBrief checks the configured board/column relationship, supplies the card fields, and saves a task ID only when MCP returns a valid UUID. Keep credentials in the Function environment. Shared-board prompts are visible to everyone with access to that board. A copied HTTP session token is not automatically refreshed.
 

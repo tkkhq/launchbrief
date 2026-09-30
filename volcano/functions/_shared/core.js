@@ -5,8 +5,8 @@ async function client(token, service = false) {
     const sdk = await import('@volcano.dev/sdk');
     VolcanoAuth = sdk.VolcanoAuth || sdk.default;
   }
-  const apiUrl = process.env.VOLCANO_API_URL;
-  const anonKey = process.env.VOLCANO_ANON_KEY;
+  const apiUrl = process.env.NEXT_PUBLIC_VOLCANO_API_URL;
+  const anonKey = process.env.NEXT_PUBLIC_VOLCANO_ANON_KEY;
   const accessToken = service ? process.env.VOLCANO_SERVICE_KEY : token;
   if (!apiUrl || !anonKey || !accessToken || !process.env.VOLCANO_DATABASE) throw new Error('Volcano variables are incomplete');
   const volcano = new VolcanoAuth({ apiUrl, anonKey, accessToken });
