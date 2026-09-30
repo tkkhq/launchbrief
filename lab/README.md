@@ -2,11 +2,12 @@
 
 A 90-minute lab using a Free Volcano account: each participant creates **one LaunchBrief project with one `web` frontend**. Trellini is already deployed by the facilitator at [trellini.volcano.run](https://trellini.volcano.run). Participants sign up there and watch their LaunchBrief requests appear on the shared board. No Pro coupon or participant Trellini deployment is needed.
 
-- [Participant guide](participant-guide.md) — nine activities and checkpoints.
 - [Lab handout](handout.md) — known board website and fields the facilitator must supply.
 - [Environment template](launchbrief.env.example) — copy to the gitignored `.env.cloud`.
 - [Environment checker](scripts/check-env.mjs) — validates required fields without printing secrets.
 - [Trellini target finder](scripts/list-trellini-targets.mjs) — connects to hosted MCP using the participant's token; reads visible board/column IDs without writing cards.
+
+The facilitator distributes participant instructions separately.
 
 LaunchBrief uses `TRELLINI_MCP_TRANSPORT=http` in the lab. Each participant supplies their own Trellini session token in `TRELLINI_ACCESS_TOKEN`, plus the confirmed MCP endpoint and shared destination IDs. The website URL does not establish the MCP endpoint. The instructor's Trellini service key is never distributed. Existing owner-operated deployments can continue using the default `stdio` mode.
 

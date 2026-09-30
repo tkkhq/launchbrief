@@ -2,7 +2,7 @@
 
 Use this runbook for a new LaunchBrief instance in a Volcano account. LaunchBrief runs in your Volcano project. Trellini can be an instructor-owned shared deployment or a separately owner-operated project. Commands are run from the named repository root; check the selected project before every cloud change. The commands below match Volcano CLI v0.34.0 and the checked-in application code. Recheck `volcano <command> --help` if your CLI differs.
 
-The [Free-account lab guide](../lab/participant-guide.md) uses one participant-owned LaunchBrief project and one frontend, with the instructor-owned Trellini board at https://trellini.volcano.run. No Pro coupon or participant Trellini deployment is required. This runbook also retains a manual owner-operated Trellini deployment path.
+The Free-account lab uses one participant-owned LaunchBrief project and one frontend, with the instructor-owned Trellini board at https://trellini.volcano.run. The facilitator distributes participant instructions separately. No Pro coupon or participant Trellini deployment is required. This runbook also retains a manual owner-operated Trellini deployment path.
 
 ## 1. Collect values and verify the source
 
