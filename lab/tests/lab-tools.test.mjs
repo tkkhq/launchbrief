@@ -1,5 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { parseEnvFile } from '../scripts/env-file.mjs';
 import { validateLabEnv } from '../scripts/check-env.mjs';
 import { listTrelliniTargets } from '../scripts/list-trellini-targets.mjs';
@@ -28,6 +32,21 @@ test('lab env parser handles the simple private file format without echoing valu
   assert.deepEqual(parseEnvFile('# comment\nKEY=value\nSECOND="quoted"\n'), { KEY: 'value', SECOND: 'quoted' });
   assert.throws(() => parseEnvFile('SECRET=private\nSECRET=private'), /Duplicate SECRET on line 2/);
   assert.throws(() => parseEnvFile('SECRET=private\ninvalid line'), /Expected KEY=value on line 2/);
+});
+
+test('lab helpers load Stripe settings from the repository-root .env by default', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'launchbrief-env-'));
+  try {
+    await writeFile(join(directory, '.env'), 'STRIPE_SECRET_KEY=fixture-private-key\nCREDITS_PER_PACK=5\n');
+    const moduleUrl = new URL('../scripts/env-file.mjs', import.meta.url).href;
+    const script = `import assert from 'node:assert/strict'; import {readLabEnv} from ${JSON.stringify(moduleUrl)};
+      const values = await readLabEnv();
+      assert.equal(values.STRIPE_SECRET_KEY, 'fixture-private-key');
+      assert.equal(values.CREDITS_PER_PACK, '5');`;
+    const result = spawnSync(process.execPath, ['--input-type=module', '-e', script], { cwd: directory, encoding: 'utf8' });
+    assert.equal(result.status, 0, 'Default .env loading must succeed');
+    assert.equal(result.stdout, '');
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });
 
 test('lab env checker distinguishes predeploy from ready and catches cross-project keys', () => {

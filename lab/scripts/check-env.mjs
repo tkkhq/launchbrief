@@ -53,8 +53,8 @@ export function validateLabEnv(values, phase = 'predeploy') {
 async function main() {
   const phase = process.argv[2] || 'predeploy';
   if (!['predeploy', 'ready'].includes(phase)) throw new Error('Usage: node lab/scripts/check-env.mjs [predeploy|ready]');
-  const ignored = spawnSync('git', ['check-ignore', '--quiet', '.env.cloud'], { stdio: 'ignore' });
-  if (ignored.status !== 0) throw new Error('.env.cloud must be ignored by Git before it contains secrets.');
+  const ignored = spawnSync('git', ['check-ignore', '--quiet', '.env'], { stdio: 'ignore' });
+  if (ignored.status !== 0) throw new Error('.env must be ignored by Git before it contains secrets.');
   const values = await readLabEnv();
   const { errors, warnings } = validateLabEnv(values, phase);
   for (const warning of warnings) console.warn(`Warning: ${warning}`);

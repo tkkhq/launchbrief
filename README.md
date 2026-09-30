@@ -37,11 +37,13 @@ npm ci --prefix volcano/functions
 Copy the environment templates and fill in their values:
 
 ```sh
-cp volcano/volcano.env.example volcano/volcano.env
+cp .env.example .env
 cp web/.env.example web/.env.local
 ```
 
 [`.env.example`](.env.example) is the complete field inventory. Its filled public URLs and Trellini IDs point to this repository's existing projects; replace them for your own instance. Keep populated environment files and service keys out of Git. `NEXT_PUBLIC_*` values are browser-visible; all API and service keys belong in Volcano's server-side variables.
+
+Store Stripe credentials with the other server settings in the root `.env`. The lab helpers read this file; CLI deployment uses `--file .env` to populate project variables. Hosted Functions read those variables through `process.env`. If you already have a populated `.env`, edit it instead of copying over it.
 
 | Variables | Use |
 | --- | --- |
@@ -67,7 +69,7 @@ From the repository root, start Volcano and deploy the local resources:
 
 ```sh
 volcano start
-volcano variables deploy
+volcano variables deploy --file .env
 volcano functions deploy --all
 volcano config deploy
 volcano migrations deploy --all -d app

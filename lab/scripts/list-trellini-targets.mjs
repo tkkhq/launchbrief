@@ -42,5 +42,5 @@ async function main() {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main().catch(() => { console.error('Could not list Trellini targets. Check .env.cloud, Function dependencies, and Trellini access; no credentials were printed.'); process.exitCode = 1; });
+  main().catch(() => { console.error('Could not list Trellini targets. Check .env, Function dependencies, and Trellini access; no credentials were printed.'); process.exitCode = 1; });
 }

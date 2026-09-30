@@ -21,7 +21,7 @@ export function parseEnvFile(source) {
   return values;
 }
 
-export async function readLabEnv(file = '.env.cloud') {
+export async function readLabEnv(file = '.env') {
   return parseEnvFile(await readFile(file, 'utf8'));
 }
 

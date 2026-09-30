@@ -24,7 +24,7 @@ Each participant uses the Volcano CLI to create and deploy one LaunchBrief proje
 
 ## Trellini connection variables
 
-Copy these five fields into your private `.env.cloud`:
+Copy these five fields into your private `.env`:
 
 ```dotenv
 TRELLINI_MCP_TRANSPORT=http
@@ -34,7 +34,7 @@ TRELLINI_BOARD_ID=f8a06b4a-19ba-477b-a9a5-d3e942605736
 TRELLINI_COLUMN_ID=dc83b534-1d38-4754-96cd-852827ce1c8d
 ```
 
-Replace the token placeholder: sign in at https://trellini.volcano.run, open the gear menu → MCP connection panel → **Other**, and copy the entire token after `Bearer ` from the Authorization header. Do not include the `Bearer ` prefix or the JSON wrapper. Keep the token private in `.env.cloud` and server-side project variables. No `TRELLINI_DATABASE`, `TRELLINI_API_URL`, or Trellini service key is needed in HTTP mode. These are the Trellini fields; LaunchBrief's own project, model, and Stripe fields are also required by the environment template.
+Replace the token placeholder: sign in at https://trellini.volcano.run, open the gear menu → MCP connection panel → **Other**, and copy the entire token after `Bearer ` from the Authorization header. Do not include the `Bearer ` prefix or the JSON wrapper. Keep the token private in `.env` and server-side project variables. No `TRELLINI_DATABASE`, `TRELLINI_API_URL`, or Trellini service key is needed in HTTP mode. These are the Trellini fields; LaunchBrief's own project, model, and Stripe fields are also required by the environment template.
 
 The board and column IDs above were supplied by the facilitator. Verify authenticated access and their relationship before generation:
 
@@ -44,6 +44,6 @@ node lab/scripts/list-trellini-targets.mjs
 
 Match both IDs in the helper's results. Do not distribute the facilitator's service key or include participant tokens in this handout.
 
-Confirm the session-token lifetime on the deployed Trellini project. When it expires, the participant retrieves a fresh token from Trellini, updates `.env.cloud`, and redeploys LaunchBrief variables. No frontend deployment is needed for a token-only change.
+Confirm the session-token lifetime on the deployed Trellini project. When it expires, the participant retrieves a fresh token from Trellini, updates `.env`, and redeploys LaunchBrief variables. No frontend deployment is needed for a token-only change.
 
 The shared board receives original idea and follow-up prompts. Use sample content suitable for everyone in the lab to read. Other participants cannot open a private LaunchBrief idea merely because its link appears in Trellini.
