@@ -38,7 +38,7 @@ The repository contains the Volcano scaffold already; do not run `volcano init` 
 
 ## 3. Prepare Trellini first
 
-For the Free-account lab, sign up on https://trellini.volcano.run and open the shared board. Use your signed-in session's MCP panel to obtain the actual MCP endpoint and token, and the lab handout for the shared board/column UUIDs. Use `lab/launchbrief.env.example` for your private `.env`:
+For the Free-account lab, sign up on https://trellini.volcano.run and open the shared board. Use your signed-in session's MCP panel to obtain the actual MCP endpoint and token, and the lab handout for the shared board/column UUIDs. Use `.env.example` for your private `.env`:
 
 ```dotenv
 TRELLINI_MCP_TRANSPORT=http
@@ -104,7 +104,7 @@ volcano cloud storage bucket create launchbrief-decks --allowed-mime-type applic
 
 If no usable LaunchBrief browser key exists, create one with `volcano projects keys anon create YOUR_KEY_NAME YOUR_LAUNCHBRIEF_PROJECT_ID`. The `launchbrief-decks` bucket starts private with owner-scoped policies; it does not need public access. The `app` migrations create ideas, turns, and credits with user-scoped reads.
 
-For the shared lab, copy `lab/launchbrief.env.example`, use HTTP mode as described in section 3, and keep `LAUNCHBRIEF_CREDIT_GATE_ENABLED=true`. Supply Stripe test-mode Checkout fields before deployment, then complete section 6 to register the webhook and buy at least three test credits before generation. For an owner-operated stdio deployment outside the lab, create a private, gitignored `.env` in the LaunchBrief repository root. Replace every placeholder below with a value from **your** projects. The `NEXT_PUBLIC_*` entries are browser-visible. All other keys stay server-side. The following standalone example starts in no-credit test mode so Stripe can be added later.
+For the shared lab, copy `.env.example`, use HTTP mode as described in section 3, and keep `LAUNCHBRIEF_CREDIT_GATE_ENABLED=true`. Supply Stripe test-mode Checkout fields before deployment, then complete section 6 to register the webhook and buy at least three test credits before generation. For an owner-operated stdio deployment outside the lab, create a private, gitignored `.env` in the LaunchBrief repository root. Replace every placeholder below with a value from **your** projects. The `NEXT_PUBLIC_*` entries are browser-visible. All other keys stay server-side. The following standalone example starts in no-credit test mode so Stripe can be added later.
 
 ```dotenv
 VOLCANO_SERVICE_KEY=<launchbrief-service-key>
