@@ -27,9 +27,13 @@ exports.handler = async (event) => {
   if (!charged) return reply(402, { error: 'You need one credit to create a brief.' });
   if (charged === 'prior') return reply(200, { turn_id: event.turn_id, status: 'tracking' });
   let turnCreated = false;
+  let stage = 'saving';
   try {
     if (initial) {
-      const fields = freeform ? await organizeIdeaPrompt(event.idea_prompt.trim()) : {
+      const fields = freeform ? {
+        product_name: event.idea_prompt.trim().replace(/\s+/g, ' ').slice(0, 120),
+        description: event.idea_prompt.trim(), target_customer: 'Customer to validate', category: 'Uncategorized', goal: '',
+      } : {
         product_name: event.product_name.trim(), description: event.description.trim(),
         target_customer: event.target_customer.trim(), category: event.category.trim(), goal: (event.goal || '').trim(),
       };
@@ -40,19 +44,32 @@ exports.handler = async (event) => {
     const prompt = initial
       ? (freeform ? event.idea_prompt.trim() : [idea.description, idea.goal ? `Goal or constraint: ${idea.goal}` : ''].filter(Boolean).join('\n'))
       : event.prompt.trim();
-    const { error } = await db.insert('launch_turns', { id: event.turn_id, idea_id: idea.id, user_id: auth.user_id, prompt, kind: event.kind, status: 'tracking' });
+    const { error } = await db.insert('launch_turns', { id: event.turn_id, idea_id: idea.id, user_id: auth.user_id, prompt, kind: event.kind, status: freeform ? 'queued' : 'tracking' });
     if (error) throw new Error(`Saving prompt: ${error.message}`);
     turnCreated = true;
+    console.info(JSON.stringify({ event: 'brief_saved', turn_id: event.turn_id, status: freeform ? 'queued' : 'tracking' }));
+    if (freeform) {
+      stage = 'organizing';
+      const fields = await organizeIdeaPrompt(prompt);
+      const updated = await db.update('launch_ideas', { ...fields, updated_at: new Date().toISOString() }).eq('id', idea.id).eq('user_id', auth.user_id);
+      if (updated.error) throw new Error(`Saving organized idea: ${updated.error.message}`);
+      Object.assign(idea, fields);
+      const tracking = await db.update('launch_turns', { status: 'tracking', updated_at: new Date().toISOString() }).eq('id', event.turn_id).eq('user_id', auth.user_id);
+      if (tracking.error) throw new Error(`Saving progress: ${tracking.error.message}`);
+    }
+    stage = 'tracking';
     const task = await createTrelliniTask(idea, prompt, idea.id);
     const tracked = await db.update('launch_turns', { task_card_id: task.cardId, task_url: task.taskUrl, status: 'writing', updated_at: new Date().toISOString() }).eq('id', event.turn_id).eq('user_id', auth.user_id);
     if (tracked.error) throw new Error(`Saving Trellini task: ${tracked.error.message}`);
     const { data: past, error: pastError } = await db.from('launch_turns').select('prompt,recommendation').eq('idea_id', idea.id).eq('user_id', auth.user_id).eq('status', 'complete').order('created_at', { ascending: true }).limit(20);
     if (pastError) throw new Error(`Reading history: ${pastError.message}`);
+    stage = 'writing';
     const brief = await writeBrief(idea, prompt, past || []);
     const saved = await db.update('launch_turns', { research_notes: JSON.stringify(brief.research_notes), recommendation: JSON.stringify(brief.recommendation), status: 'complete', updated_at: new Date().toISOString() }).eq('id', event.turn_id).eq('user_id', auth.user_id);
     if (saved.error) throw new Error(`Saving brief: ${saved.error.message}`);
     return reply(200, { turn_id: event.turn_id, status: 'complete' });
   } catch (error) {
+    console.error(JSON.stringify({ event: 'brief_failed', turn_id: event.turn_id, stage, error_type: error.name || 'Error', status: error.status || null }));
     if (turnCreated) {
       await db.update('launch_turns', { status: 'failed', error_message: error.message, updated_at: new Date().toISOString() }).eq('id', event.turn_id).eq('user_id', auth.user_id);
     }

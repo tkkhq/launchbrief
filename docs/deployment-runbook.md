@@ -11,7 +11,7 @@ The Free-account lab uses one participant-owned LaunchBrief project and one fron
 | LaunchBrief project ID, API URL, browser and server keys | Your own Volcano account and supported CLI key commands. |
 | Trellini connection | Shared lab: confirmed hosted MCP URL and your Trellini user session token. Owner-operated stdio: Trellini project API URL and service key. |
 | Trellini board and column UUIDs | Shared lab: facilitator-supplied IDs, verified through hosted MCP. Owner-operated: a board and column in your Trellini project. |
-| Model credential | An API key that can call the configured Anthropic model. LaunchBrief uses TanStack AI's Anthropic adapter; the checked-in default is `claude-sonnet-5.5`. |
+| Model credential | An API key that can call the configured Anthropic model. LaunchBrief uses TanStack AI's Anthropic adapter; the checked-in default is `claude-sonnet-5-5`. |
 | Stripe values, if charging for credits | A Stripe secret key, a **one-time** credit-pack Price ID, the number of credits in that pack, and a webhook signing secret after the endpoint is registered. |
 | LaunchBrief public URL | `volcano cloud frontends list` after the first frontend deployment. Use it for `APP_BASE_URL`. |
 
@@ -114,7 +114,7 @@ NEXT_PUBLIC_VOLCANO_ANON_KEY=<launchbrief-anon-key>
 NEXT_PUBLIC_VOLCANO_DATABASE=app
 ANTHROPIC_API_KEY=<model-api-key>
 ANTHROPIC_WORKSPACE_ID=<workspace-id-required-by-the-lab-key>
-ANTHROPIC_MODEL=claude-sonnet-5.5
+ANTHROPIC_MODEL=claude-sonnet-5-5
 LAUNCHBRIEF_CREDIT_GATE_ENABLED=false
 TRELLINI_MCP_TRANSPORT=stdio
 TRELLINI_API_URL=<trellini-volcano-api-url>

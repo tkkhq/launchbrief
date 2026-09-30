@@ -9,7 +9,7 @@ async function tanstackRuntime() {
   const options = {};
   if (process.env.ANTHROPIC_BASE_URL) options.baseURL = process.env.ANTHROPIC_BASE_URL;
   if (process.env.ANTHROPIC_WORKSPACE_ID) options.defaultHeaders = { 'anthropic-workspace-id': process.env.ANTHROPIC_WORKSPACE_ID };
-  const adapter = createAnthropicChat(process.env.ANTHROPIC_MODEL || 'claude-sonnet-5.5', process.env.ANTHROPIC_API_KEY, options);
+  const adapter = createAnthropicChat(process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5', process.env.ANTHROPIC_API_KEY, options);
   return { chat, toolDefinition, maxIterations, adapter };
 }
 

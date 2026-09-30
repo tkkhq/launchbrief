@@ -52,7 +52,7 @@ Store Stripe credentials with the other server settings in the root `.env`. The 
 | `VOLCANO_SERVICE_KEY`, `VOLCANO_DATABASE` | Server access to LaunchBrief's database. Keep the service key server-side. |
 | `NEXT_PUBLIC_VOLCANO_API_URL`, `NEXT_PUBLIC_VOLCANO_ANON_KEY`, `NEXT_PUBLIC_VOLCANO_DATABASE` | Shared API URL and anon key for Functions and the browser; database name for the browser. |
 | `APP_BASE_URL` | LaunchBrief's public origin for Checkout redirects and links in Trellini task notes. |
-| `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Brief generation and Trellini tool requests through TanStack AI. The default model is `claude-sonnet-5.5`. |
+| `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Brief generation and Trellini tool requests through TanStack AI. The default model is `claude-sonnet-5-5`. |
 | `ANTHROPIC_BASE_URL` | Optional Anthropic-compatible proxy endpoint. It must support Messages API tool calls and structured outputs. |
 | `ANTHROPIC_WORKSPACE_ID` | Required with the lab API key. Functions send this value in the `anthropic-workspace-id` header. Keep it in server-side variables. |
 | `LAUNCHBRIEF_CREDIT_GATE_ENABLED` | Server-side credit gate. Defaults to enabled; only `false` bypasses credit spending for signed-in users. The browser reads the mode from the private `credit-mode` Function. |
