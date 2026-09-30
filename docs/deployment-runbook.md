@@ -104,7 +104,7 @@ volcano cloud storage bucket create launchbrief-decks --allowed-mime-type applic
 
 If no usable LaunchBrief browser key exists, create one with `volcano projects keys anon create YOUR_KEY_NAME YOUR_LAUNCHBRIEF_PROJECT_ID`. The `launchbrief-decks` bucket starts private with owner-scoped policies; it does not need public access. The `app` migrations create ideas, turns, and credits with user-scoped reads.
 
-For the shared lab, copy `lab/launchbrief.env.example` and use HTTP mode as described in section 3. For an owner-operated stdio deployment, create a private, gitignored `.env.cloud` in the LaunchBrief repository root. Replace every placeholder below with a value from **your** projects. The `NEXT_PUBLIC_*` entries are browser-visible. All other keys stay server-side. Start in global no-credit test mode so Stripe can be added later.
+For the shared lab, copy `lab/launchbrief.env.example`, use HTTP mode as described in section 3, and keep `LAUNCHBRIEF_CREDIT_GATE_ENABLED=true`. Supply Stripe test-mode Checkout fields before deployment, then complete section 6 to register the webhook and buy at least three test credits before generation. For an owner-operated stdio deployment outside the lab, create a private, gitignored `.env.cloud` in the LaunchBrief repository root. Replace every placeholder below with a value from **your** projects. The `NEXT_PUBLIC_*` entries are browser-visible. All other keys stay server-side. The following standalone example starts in no-credit test mode so Stripe can be added later.
 
 ```dotenv
 VOLCANO_API_URL=<launchbrief-volcano-api-url>
@@ -149,7 +149,7 @@ volcano cloud variables list
 
 `APP_BASE_URL` is used in Trellini card notes and Stripe redirects. The first deploy can build without it, but brief generation needs it before testing. If you later change a browser-visible `NEXT_PUBLIC_*` value, deploy the variables **and redeploy the frontend** so its build uses the new value.
 
-## 5. Verify the no-credit path
+## 5. Optional no-credit check outside the lab
 
 With `LAUNCHBRIEF_CREDIT_GATE_ENABLED=false`, sign-in is still required and Checkout is hidden. Use the deployed LaunchBrief URL to:
 
@@ -171,7 +171,7 @@ volcano cloud frontends logs web --type build
 volcano cloud storage bucket list
 ```
 
-## 6. Enable paid credits when ready
+## 6. Configure credits (required for the lab)
 
 Create a one-time Stripe Price representing one credit pack. In `.env.cloud`, set `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, and `CREDITS_PER_PACK` to the pack's positive integer credit count. Get the deployed webhook Function's **actual HTTP URL** from `volcano cloud functions get stripe-webhook`; register that URL in Stripe for `checkout.session.completed` and `checkout.session.async_payment_succeeded`. Set `STRIPE_WEBHOOK_SECRET` to the resulting endpoint signing secret. Do not infer a Function URL or put Stripe secrets in `NEXT_PUBLIC_*` variables.
 
@@ -183,6 +183,8 @@ volcano cloud variables list
 ```
 
 Run a Stripe test purchase. Confirm the webhook grants exactly `CREDITS_PER_PACK` credits once, then confirm an idea or follow-up costs one credit and PPT creation costs one credit. The app does not seed credits automatically. If Checkout or granting fails, inspect `create-checkout` and `stripe-webhook` runtime logs and the Stripe endpoint delivery result before inviting users.
+
+For the lab, use Stripe test-mode values, keep the gate `true`, run `node lab/scripts/check-env.mjs ready` after supplying `APP_BASE_URL` and `STRIPE_WEBHOOK_SECRET`, and acquire at least three credits for the idea, follow-up, and PPT checkpoints. Complete the saved-history and shared-board checks from section 5 with credit charging enabled.
 
 ## 7. Updating or rolling back
 

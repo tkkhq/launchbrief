@@ -13,7 +13,7 @@ LaunchBrief uses `TRELLINI_MCP_TRANSPORT=http` in the lab. Each participant supp
 
 Prompts posted to Trellini are visible to everyone on the shared board. Use sample ideas suitable for group sharing. Existing Trellini permissions allow collaboration, including editing; the board is not an observer-only view. LaunchBrief's saved briefs, conversations, and decks remain scoped to users in each participant's instance.
 
-Stripe is outside the core lab: `LAUNCHBRIEF_CREDIT_GATE_ENABLED=false` enables signed-in brief, follow-up, and PPT testing without buying credits. Model calls still need authorized model access. The repository does not supply an instructor model proxy.
+The lab uses `LAUNCHBRIEF_CREDIT_GATE_ENABLED=true`. Each idea, follow-up, and PPT creation costs one credit. Configure Stripe test-mode Checkout and the deployed webhook in each LaunchBrief instance, then buy enough test credit packs for at least three credits before exercising generation. Credits are not seeded automatically. The environment checker requires Checkout values before deployment and the webhook signing secret for its ready check. Model calls also need authorized model access; the repository does not supply an instructor model proxy.
 
 The facilitator must verify hosted MCP access with a newly registered Trellini user before the session, including live board updates and the actual session-token lifetime. Runtime tokens are copied credentials, not automatically refreshed by LaunchBrief.
 

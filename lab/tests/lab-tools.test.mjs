@@ -13,7 +13,10 @@ const valid = {
   NEXT_PUBLIC_VOLCANO_ANON_KEY: 'launch-anon',
   NEXT_PUBLIC_VOLCANO_DATABASE: 'app',
   ANTHROPIC_API_KEY: 'model-key',
-  LAUNCHBRIEF_CREDIT_GATE_ENABLED: 'false',
+  LAUNCHBRIEF_CREDIT_GATE_ENABLED: 'true',
+  STRIPE_SECRET_KEY: 'stripe-test-secret',
+  STRIPE_PRICE_ID: 'price_test',
+  CREDITS_PER_PACK: '10',
   TRELLINI_MCP_TRANSPORT: 'http',
   TRELLINI_MCP_URL: 'https://mcp.example.test/',
   TRELLINI_ACCESS_TOKEN: 'participant-token',
@@ -30,11 +33,22 @@ test('lab env parser handles the simple private file format without echoing valu
 test('lab env checker distinguishes predeploy from ready and catches cross-project keys', () => {
   assert.deepEqual(validateLabEnv(valid, 'predeploy').errors, []);
   assert.match(validateLabEnv(valid, 'ready').errors.join('\n'), /APP_BASE_URL/);
-  assert.deepEqual(validateLabEnv({ ...valid, APP_BASE_URL: 'https://launch.example.test/' }, 'ready').errors, []);
-  const failures = validateLabEnv({ ...valid, TRELLINI_SERVICE_KEY: 'owner-secret', LAUNCHBRIEF_CREDIT_GATE_ENABLED: 'true' }).errors.join('\n');
+  assert.deepEqual(validateLabEnv({ ...valid, APP_BASE_URL: 'https://launch.example.test/', STRIPE_WEBHOOK_SECRET: 'webhook-test-secret' }, 'ready').errors, []);
+  const failures = validateLabEnv({ ...valid, TRELLINI_SERVICE_KEY: 'owner-secret', LAUNCHBRIEF_CREDIT_GATE_ENABLED: 'false' }).errors.join('\n');
   assert.match(failures, /remove this/);
   assert.match(failures, /LAUNCHBRIEF_CREDIT_GATE_ENABLED/);
   assert.doesNotMatch(failures, /owner-secret/);
+});
+
+test('credit-gated lab requires checkout fields and a webhook secret before testing', () => {
+  assert.match(validateLabEnv({ ...valid, STRIPE_SECRET_KEY: '' }).errors.join('\n'), /STRIPE_SECRET_KEY/);
+  assert.match(validateLabEnv({ ...valid, STRIPE_PRICE_ID: '' }).errors.join('\n'), /STRIPE_PRICE_ID/);
+  for (const pack of ['', '0', '1.5', '1001', 'not-a-number']) {
+    assert.match(validateLabEnv({ ...valid, CREDITS_PER_PACK: pack }).errors.join('\n'), /CREDITS_PER_PACK/);
+  }
+  assert.deepEqual(validateLabEnv(valid, 'predeploy').errors, []);
+  assert.match(validateLabEnv({ ...valid, APP_BASE_URL: 'https://launch.example.test/' }, 'ready').errors.join('\n'), /STRIPE_WEBHOOK_SECRET/);
+  assert.match(validateLabEnv({ ...valid, CREDITS_PER_PACK: '1' }).warnings.join('\n'), /at least 3 credits/);
 });
 
 test('Trellini target finder only calls existing read-only MCP tools', async () => {
